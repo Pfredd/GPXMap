@@ -1,2 +1,2 @@
-include ':app'
+include ':app', ':parser'
 rootProject.name='GPXMap'
