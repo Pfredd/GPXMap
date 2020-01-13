@@ -20,11 +20,11 @@ import com.google.android.gms.maps.UiSettings;
 
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.muddco.gpxmap.gpxparser.GPXParser;
-import com.muddco.gpxmap.gpxparser.Gpx;
-import com.muddco.gpxmap.gpxparser.Track;
-import com.muddco.gpxmap.gpxparser.TrackPoint;
-import com.muddco.gpxmap.gpxparser.TrackSegment;
+import io.ticofab.androidgpxparser.parser.GPXParser;
+import io.ticofab.androidgpxparser.parser.domain.Gpx;
+import io.ticofab.androidgpxparser.parser.domain.Track;
+import io.ticofab.androidgpxparser.parser.domain.TrackPoint;
+import io.ticofab.androidgpxparser.parser.domain.TrackSegment;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeComparator;
@@ -59,7 +59,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        try {
+            mapFragment.getMapAsync(this);
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -76,7 +80,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Double previousLat = 0.0;
         Double previousLon = 0.0;
         DateTime previousTime = null;
-        DateTime pointdt = null;
+        DateTime pointdt;
         Double tagLat = 0.0;
         Double tagLon = 0.0;
 
@@ -86,6 +90,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         polyLine.color(Color.RED);
 
         Gpx parsedGpx = null;
+
+        long previousMillis = 0;
+        long photoMillis = 0;
+        long nextMillis = 0;
 
         InputStream in;
         try {
@@ -106,7 +114,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 int kk = 0;
                 for (int j = 0; j < segments.size(); j++) {
                     TrackSegment segment = segments.get(j);
-                    Boolean firstPoint = true;
+                    boolean firstPoint = true;
                     for (TrackPoint trackPoint : segment.getTrackPoints()) {
                         tData.addTrackPoint(trackPoint);
                         pLat = trackPoint.getLatitude();
@@ -142,9 +150,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 int r =243;
             } else {
                 int k=343;
-                long previousMillis = previousTime.getMillis();
-                long photoMillis = photodt.getMillis();
-                long nextMillis = pointdt.getMillis();
+                try {
+                 previousMillis = previousTime.getMillis();
+                 photoMillis = photodt.getMillis();
+                 nextMillis = pointdt.getMillis();
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                }
                 if (photoMillis != nextMillis) {
                     // Photo was taken between track data points. So we have to extrapolate the position
                     float pct = (float)(photoMillis - previousMillis) / (float)(nextMillis - previousMillis);
@@ -170,7 +182,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private String getPhotoDate(String fileName) {
-        InputStream mfile = null;
+        InputStream mfile;
         String ret = null;
 
         try {
@@ -206,7 +218,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void test123() {
-        InputStream mfile = null;
+        InputStream mfile;
         String LOG_ID = "TEST123";
 
         try {

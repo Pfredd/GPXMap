@@ -1,17 +1,17 @@
 package com.muddco.gpxmap;
 
-import com.muddco.gpxmap.gpxparser.TrackPoint;
+import io.ticofab.androidgpxparser.parser.domain.TrackPoint;
 
 import java.util.ArrayList;
 
-public class TrackData {
+ class TrackData {
     private static ArrayList<TrackPoint> trackPoints;
 
-    public TrackData() {
-        trackPoints = new ArrayList<TrackPoint>();
+    TrackData() {
+        trackPoints = new ArrayList<>();
     }
 
-    public ArrayList<TrackPoint> getTrackPoints() {
+     ArrayList<TrackPoint> getTrackPoints() {
         return trackPoints;
     }
 

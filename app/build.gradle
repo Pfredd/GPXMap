@@ -33,4 +33,5 @@ dependencies {
     implementation files('libs/joda-time-2.10.5.jar')
     implementation 'androidx.exifinterface:exifinterface:1.1.0'
     implementation 'androidx.exifinterface:exifinterface:1.1.0'
+    implementation project(path: ':parser')
 }
