@@ -1,14 +1,12 @@
 package com.muddco.gpxmap;
 
-import androidx.fragment.app.FragmentActivity;
-
 import android.content.res.AssetManager;
 import android.graphics.Color;
-// For androidx.exifinterface  - need to add dependancy for
-// androidx.exifinterface:exifinterface:1.1.0
-import androidx.exifinterface.media.ExifInterface;
 import android.os.Bundle;
 import android.util.Log;
+
+import androidx.exifinterface.media.ExifInterface;
+import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -16,26 +14,25 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.UiSettings;
-
-import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
 import io.ticofab.androidgpxparser.parser.GPXParser;
 import io.ticofab.androidgpxparser.parser.domain.Gpx;
 import io.ticofab.androidgpxparser.parser.domain.Track;
 import io.ticofab.androidgpxparser.parser.domain.TrackPoint;
 import io.ticofab.androidgpxparser.parser.domain.TrackSegment;
 
-import org.xmlpull.v1.XmlPullParserException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-
-import java.io.IOException;
-import java.io.InputStream;
-
-import java.util.ArrayList;
-import java.util.List;
+// For androidx.exifinterface  - need to add dependancy for
+// androidx.exifinterface:exifinterface:1.1.0
 
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -78,7 +75,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         long tzOffset = 5;
 
-
         polyLine.geodesic(false);   // Not needed on our small scale map
         polyLine.width(12);
         polyLine.color(Color.RED);
@@ -86,7 +82,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Gpx parsedGpx = null;
 
         /*
-        * Open and parse gpx file
+         * Open and parse gpx file
          */
         InputStream in;
         try {
@@ -100,7 +96,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         /*
-        * Add track to the map
+         * Add track to the map
          */
         if (parsedGpx != null) {
             List<Track> tracks = parsedGpx.getTracks();
@@ -137,8 +133,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private LatLng findPhotoOnTrack(TrackData tData, String photoFilename, long tzOffset)
-    {
+    private LatLng findPhotoOnTrack(TrackData tData, String photoFilename, long tzOffset) {
         Double previousLat = 0.0;
         Double previousLon = 0.0;
         LocalDateTime previousTime = null;
@@ -155,7 +150,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             pointdt = trackPoint.getTime();
             if (!photodt.isBefore(pointdt) && !photodt.isEqual(pointdt)) {
                 Boolean test = photodt.isEqual(pointdt);
-                previousLat =trackPoint.getLatitude();
+                previousLat = trackPoint.getLatitude();
                 previousLon = trackPoint.getLongitude();
                 previousTime = trackPoint.getTime();
             } else {
@@ -168,7 +163,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 if (millisToEndpoint != millisToPhoto) {
                     // Photo was taken between track data points. So we have to extrapolate the position
-                    float pct = (float)millisToPhoto / (float)millisToEndpoint;
+                    float pct = (float) millisToPhoto / (float) millisToEndpoint;
                     extrapolatePoint midPoint = new extrapolatePoint(previousLat, previousLon, trackPoint.getLatitude(), trackPoint.getLongitude(), pct);
                     tagLat = midPoint.latitude();
                     tagLon = midPoint.longitude();
@@ -181,11 +176,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
             }
         }
-        return(new LatLng(tagLat, tagLon));
+        return (new LatLng(tagLat, tagLon));
     }
 
     /*
-    * Returns a photo's creation dare from it's EXIF data
+     * Returns a photo's creation dare from it's EXIF data
      */
     private String getPhotoDate(String fileName) {
         InputStream mfile;
@@ -207,15 +202,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private void setGPS(String filePath, Double latitude, Double longitude) {
+    private static void setGPS(String filePath, Double latitude, Double longitude) {
 
         try {
             ExifInterface exif = new ExifInterface(filePath);
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, GPS.convert(latitude));
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, GPS.latitudeRef(latitude));
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, GPS.convert(longitude));
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPS.longitudeRef(longitude));
-        exif.saveAttributes();
+            exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, GPS.convert(latitude));
+            exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, GPS.latitudeRef(latitude));
+            exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, GPS.convert(longitude));
+            exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPS.longitudeRef(longitude));
+            exif.saveAttributes();
         } catch (Exception e) {
             // if any I/O error occurs
             e.printStackTrace();
