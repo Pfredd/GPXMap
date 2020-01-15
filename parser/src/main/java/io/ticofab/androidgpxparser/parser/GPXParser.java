@@ -1,14 +1,17 @@
 package io.ticofab.androidgpxparser.parser;
 
+import android.util.Log;
 import android.util.Xml;
 
-import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
+//import org.joda.time.DateTime;
+//import org.joda.time.format.ISODateTimeFormat;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -487,13 +490,25 @@ public class GPXParser {
         return ele;
     }
 
-    private DateTime readTime(XmlPullParser parser) throws IOException, XmlPullParserException {
+    private LocalDateTime readTime(XmlPullParser parser) throws IOException, XmlPullParserException {
         parser.require(XmlPullParser.START_TAG, namespace, TAG_TIME);
-        DateTime time = ISODateTimeFormat.dateTimeParser().parseDateTime(readText(parser));
+        LocalDateTime time = LocalDateTime.parse(readText(parser), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
         parser.require(XmlPullParser.END_TAG, namespace, TAG_TIME);
         return time;
     }
 
+
+    /*
+    private DateTime readTime(XmlPullParser parser) throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, namespace, TAG_TIME);
+        String sss = readText(parser);
+        Log.d("TEST123", "readTime: "+sss );
+        DateTime time = ISODateTimeFormat.dateTimeParser().parseDateTime(sss);
+        parser.require(XmlPullParser.END_TAG, namespace, TAG_TIME);
+        return time;
+    }
+
+*/
     private String readText(XmlPullParser parser) throws IOException, XmlPullParserException {
         String result = "";
         if (parser.next() == XmlPullParser.TEXT) {

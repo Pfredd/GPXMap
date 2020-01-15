@@ -1,6 +1,8 @@
 package io.ticofab.androidgpxparser.parser.domain;
 
-import org.joda.time.DateTime;
+//import org.joda.time.DateTime;
+
+import java.time.LocalDateTime;
 
 /**
  * A point containing a location, time and name.
@@ -9,7 +11,7 @@ public abstract class Point {
     private final Double mLatitude;
     private final Double mLongitude;
     private final Double mElevation;
-    private final DateTime mTime;
+    private final LocalDateTime mTime;
     private final String mName;
     private final String mDesc;
     private final String mType;
@@ -45,7 +47,7 @@ public abstract class Point {
         return mElevation;
     }
 
-    public DateTime getTime() {
+    public LocalDateTime getTime() {
         return mTime;
     }
 
@@ -74,7 +76,7 @@ public abstract class Point {
         private Double mLatitude;
         private Double mLongitude;
         private Double mElevation;
-        private DateTime mTime;
+        private LocalDateTime mTime;
         private String mName;
         private String mDesc;
         private String mType;
@@ -94,7 +96,7 @@ public abstract class Point {
             return this;
         }
 
-        public Builder setTime(DateTime time) {
+        public Builder setTime(LocalDateTime time) {
             mTime = time;
             return this;
         }

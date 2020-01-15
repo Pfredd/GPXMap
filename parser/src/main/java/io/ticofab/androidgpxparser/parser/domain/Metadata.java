@@ -1,6 +1,8 @@
 package io.ticofab.androidgpxparser.parser.domain;
 
-import org.joda.time.DateTime;
+//import org.joda.time.DateTime;
+import java.time.LocalDateTime;
+
 
 public class Metadata {
 
@@ -9,7 +11,7 @@ public class Metadata {
     private final Author mAuthor;
     private final Copyright mCopyright;
     private final Link mLink;
-    private final DateTime mTime;
+    private final LocalDateTime mTime;
     private final String mKeywords;
     private final Bounds mBounds;
     private final String mExtensions;
@@ -46,7 +48,7 @@ public class Metadata {
         return mLink;
     }
 
-    public DateTime getTime() {
+    public LocalDateTime getTime() {
         return mTime;
     }
 
@@ -68,7 +70,7 @@ public class Metadata {
         private Author mAuthor;
         private Copyright mCopyright;
         private Link mLink;
-        private DateTime mTime;
+        private LocalDateTime mTime;
         private String mKeywords;
         private Bounds mBounds;
         private String mExtensions;
@@ -98,7 +100,7 @@ public class Metadata {
             return this;
         }
 
-        public Builder setTime(DateTime time) {
+        public Builder setTime(LocalDateTime time) {
             mTime = time;
             return this;
         }

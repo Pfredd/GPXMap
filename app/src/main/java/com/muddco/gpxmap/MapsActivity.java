@@ -26,17 +26,15 @@ import io.ticofab.androidgpxparser.parser.domain.Track;
 import io.ticofab.androidgpxparser.parser.domain.TrackPoint;
 import io.ticofab.androidgpxparser.parser.domain.TrackSegment;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeComparator;
-import org.joda.time.DateTimeFieldType;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.xmlpull.v1.XmlPullParserException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 import java.io.IOException;
 import java.io.InputStream;
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
@@ -48,8 +46,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     GPXParser mParser = new GPXParser();
 
     TrackData tData = new TrackData();
-    String gpxFileName = "20190710.gpx";
-    String photoFileName = "images/DSC01660.JPG";
+    String gpxFileName = "20190627.gpx";
+    String photoFileName = "images/DSC01042.JPG";
 
 
     @Override
@@ -77,12 +75,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Double pLat, pLon;
         LatLng position;
         PolylineOptions polyLine = new PolylineOptions();
-        Double previousLat = 0.0;
-        Double previousLon = 0.0;
-        DateTime previousTime = null;
-        DateTime pointdt;
-        Double tagLat = 0.0;
-        Double tagLon = 0.0;
+
+        long tzOffset = 5;
 
 
         polyLine.geodesic(false);   // Not needed on our small scale map
@@ -91,10 +85,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Gpx parsedGpx = null;
 
-        long previousMillis = 0;
-        long photoMillis = 0;
-        long nextMillis = 0;
-
+        /*
+        * Open and parse gpx file
+         */
         InputStream in;
         try {
             in = getAssets().open(gpxFileName);
@@ -106,12 +99,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             int qq = 3;
         }
 
+        /*
+        * Add track to the map
+         */
         if (parsedGpx != null) {
             List<Track> tracks = parsedGpx.getTracks();
             for (int i = 0; i < tracks.size(); i++) {
                 Track track = tracks.get(i);
                 List<TrackSegment> segments = track.getTrackSegments();
-                int kk = 0;
                 for (int j = 0; j < segments.size(); j++) {
                     TrackSegment segment = segments.get(j);
                     boolean firstPoint = true;
@@ -135,11 +130,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             System.exit(1);
         }
 
+        position = findPhotoOnTrack(tData, photoFileName, tzOffset);
+        googleMap.addMarker(new MarkerOptions()
+                .position(position)
+                .title("Hello world\n"));
+
+    }
+
+    private LatLng findPhotoOnTrack(TrackData tData, String photoFilename, long tzOffset)
+    {
+        Double previousLat = 0.0;
+        Double previousLon = 0.0;
+        LocalDateTime previousTime = null;
+        LocalDateTime pointdt;
+        long millisToPhoto = 0;
+        long millisToEndpoint = 0;
+        Double tagLat = 0.0;
+        Double tagLon = 0.0;
+
         ArrayList<TrackPoint> points = tData.getTrackPoints();
-        int h1 = 3;
         String photoDate = getPhotoDate(photoFileName);
-        DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy:MM:dd HH:mm:ss");
-        DateTime photodt = formatter.parseDateTime(photoDate);
+        LocalDateTime photodt = LocalDateTime.parse(photoDate, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset);
         for (TrackPoint trackPoint : points) {
             pointdt = trackPoint.getTime();
             if (!photodt.isBefore(pointdt) && !photodt.isEqual(pointdt)) {
@@ -147,19 +158,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 previousLat =trackPoint.getLatitude();
                 previousLon = trackPoint.getLongitude();
                 previousTime = trackPoint.getTime();
-                int r =243;
             } else {
-                int k=343;
                 try {
-                 previousMillis = previousTime.getMillis();
-                 photoMillis = photodt.getMillis();
-                 nextMillis = pointdt.getMillis();
+                    millisToPhoto = java.time.Duration.between(previousTime, photodt).toMillis();
+                    millisToEndpoint = java.time.Duration.between(previousTime, pointdt).toMillis();
                 } catch (NullPointerException e) {
                     e.printStackTrace();
+                    System.exit(1);
                 }
-                if (photoMillis != nextMillis) {
+                if (millisToEndpoint != millisToPhoto) {
                     // Photo was taken between track data points. So we have to extrapolate the position
-                    float pct = (float)(photoMillis - previousMillis) / (float)(nextMillis - previousMillis);
+                    float pct = (float)millisToPhoto / (float)millisToEndpoint;
                     extrapolatePoint midPoint = new extrapolatePoint(previousLat, previousLon, trackPoint.getLatitude(), trackPoint.getLongitude(), pct);
                     tagLat = midPoint.latitude();
                     tagLon = midPoint.longitude();
@@ -167,20 +176,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     // Photo was taken at a track point locatrion
                     tagLat = trackPoint.getLatitude();
                     tagLon = trackPoint.getLongitude();
-                    int q=342;
 
                 }
-                int l=903;
                 break;
             }
-            int m = 932;
         }
-        googleMap.addMarker(new MarkerOptions()
-                .position(new LatLng(tagLat, tagLon))
-                .title("Hello world"));
-
+        return(new LatLng(tagLat, tagLon));
     }
 
+    /*
+    * Returns a photo's creation dare from it's EXIF data
+     */
     private String getPhotoDate(String fileName) {
         InputStream mfile;
         String ret = null;

@@ -47,7 +47,6 @@ dependencies {
     // JodaTime for Android
     // https://github.com/dlew/joda-time-android
     // implementation 'net.danlew:android.joda:2.10.2'
-    implementation files('../app/libs/joda-time-2.10.5.jar')
     androidTestImplementation 'junit:junit:4.13-beta-2'
     androidTestImplementation 'com.android.support:support-annotations:28.0.0'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
