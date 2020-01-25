@@ -13,6 +13,7 @@ class GPS {
      * @return S or N
      */
     static String latitudeRef(double latitude) {
+
         return latitude < 0.0d ? "S" : "N";
     }
 
@@ -23,11 +24,15 @@ class GPS {
      * @return S or N
      */
     static String longitudeRef(double longitude) {
+
         return longitude < 0.0d ? "W" : "E";
     }
 
     /**
-     * convert latitude into DMS (degree minute second) format. For instance<br/>
+     * convert latitude into DMS (degree minute second) format.
+     * This is used when storing GPS data in photo EXIF data
+     *
+     * For instance<br/>
      * -79.948862 becomes<br/>
      * 79/1,56/1,55903/1000<br/>
      * It works for latitude and longitude<br/>

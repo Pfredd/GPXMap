@@ -8,11 +8,7 @@ package com.muddco.gpxmap;
 // Reff: https://stackoverflow.com/questions/5280479/how-to-save-gps-coordinates-in-exif-data-on-android
 //
 
-//import android.media.ExifInterface;
-
 import androidx.exifinterface.media.ExifInterface;
-
-import static java.lang.Double.valueOf;
 
 public class geoDegree {
     private boolean valid = false;
@@ -78,10 +74,7 @@ public class geoDegree {
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        return (String.valueOf(Latitude)
-                + ", "
-                + String.valueOf(Longitude));
+        return (String.valueOf(Latitude) + ", " + String.valueOf(Longitude));
     }
 
     public int getLatitudeE6() {

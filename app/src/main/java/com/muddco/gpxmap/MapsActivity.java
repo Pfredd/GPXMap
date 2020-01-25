@@ -223,9 +223,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String LOG_ID = "TEST123";
 
         try {
-            //AssetManager assetManager = getAssets();
             mfile = getAssets().open("images/DSC01638.JPG");
-            //mfile = assetManager.open("images/test1.jpg");
             ExifInterface exif = new ExifInterface(mfile);
             geoDegree gd = new geoDegree(exif);
             Log.e(LOG_ID, "LATITUDE EXTRACTED: " + exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE));
