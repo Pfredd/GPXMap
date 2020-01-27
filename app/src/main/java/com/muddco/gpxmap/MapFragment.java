@@ -8,11 +8,13 @@ import android.view.ViewGroup;
 
 import androidx.fragment.app.Fragment;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -57,11 +59,11 @@ public class MapFragment extends Fragment {
     static public void displayTrack(TrackData tData) {
         Double pLat, pLon;
         LatLng position;
-        boolean firstPoint = true;
         PolylineOptions polyLine = new PolylineOptions();
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
 
         polyLine.geodesic(false);   // Not needed on our small scale map
-        polyLine.width(12);
+        polyLine.width(10);
         polyLine.color(Color.RED);
 
         ArrayList<TrackPoint> points = tData.getTrackPoints();
@@ -69,13 +71,14 @@ public class MapFragment extends Fragment {
             pLat = trackPoint.getLatitude();
             pLon = trackPoint.getLongitude();
             position = new LatLng(pLat, pLon);
-            if (firstPoint) {
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 10));
-                firstPoint = false;
-            }
-            polyLine.add(position);
+            polyLine.add(position);     // Add track point to map
+            builder.include(position);  // Save track polint for map scaling
         }
+        // Scale map so the entire track is shown
+        LatLngBounds bounds = builder.build();
+        final CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 50);
         mMap.addPolyline(polyLine);
+        mMap.animateCamera(cu);
     }
 
     static public void displayPhotos(ArrayList<Photo> photoList) {
