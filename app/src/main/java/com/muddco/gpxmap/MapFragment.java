@@ -48,9 +48,6 @@ public class MapFragment extends Fragment {
 
                 mMap.clear(); //clear old markers
 
-                polyLine.geodesic(false);   // Not needed on our small scale map
-                polyLine.width(12);
-                polyLine.color(Color.RED);
             }
         });
 
@@ -62,6 +59,10 @@ public class MapFragment extends Fragment {
         LatLng position;
         boolean firstPoint = true;
         PolylineOptions polyLine = new PolylineOptions();
+
+        polyLine.geodesic(false);   // Not needed on our small scale map
+        polyLine.width(12);
+        polyLine.color(Color.RED);
 
         ArrayList<TrackPoint> points = tData.getTrackPoints();
         for (TrackPoint trackPoint : points) {
