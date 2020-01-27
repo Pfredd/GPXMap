@@ -7,8 +7,6 @@ import java.time.LocalDateTime;
 public class Photo {
     private String fileName = null;
     private LocalDateTime date = null;
-    private long lat = 0;
-    private long lon = 0;
     private LatLng positiuon;
 
     public void add(String pfname) {
@@ -25,19 +23,6 @@ public class Photo {
 
     public LocalDateTime getDate() {
         return date;
-    }
-
-    public void setLatLon(long mlat, long mlon) {
-        lat = mlat;
-        lon = mlon;
-    }
-
-    public long getLat() {
-        return lat;
-    }
-
-    public long getLon() {
-        return lon;
     }
 
     public void setPosition(LatLng mposition) {
