@@ -26,7 +26,7 @@ import io.ticofab.androidgpxparser.parser.domain.TrackPoint;
 
 public class MapFragment extends Fragment {
 
-    private static GoogleMap mMap;
+    private static GoogleMap mMap = null;
 
     public MapFragment() {
         // Required empty public constructor
@@ -41,13 +41,13 @@ public class MapFragment extends Fragment {
             // Listen for mouse wheel events.
             @Override
             public boolean onGenericMotion(View v, MotionEvent event) {
-                if (0 != (event.getSource() & InputDevice.SOURCE_CLASS_POINTER)) {
+                if (mMap != null && (0 != (event.getSource() & InputDevice.SOURCE_CLASS_POINTER))) {
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_SCROLL:
                             if (event.getAxisValue(MotionEvent.AXIS_VSCROLL) < 0.0f)
-                                mMap.animateCamera(CameraUpdateFactory.zoomIn());
-                            else
                                 mMap.animateCamera(CameraUpdateFactory.zoomOut());
+                            else
+                                mMap.animateCamera(CameraUpdateFactory.zoomIn());
                             return true;
                     }
                 }
