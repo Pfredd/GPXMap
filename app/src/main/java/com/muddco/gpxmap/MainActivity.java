@@ -2,9 +2,6 @@ package com.muddco.gpxmap;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.res.AssetManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,6 +10,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -28,6 +26,7 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import io.ticofab.androidgpxparser.parser.GPXParser;
@@ -45,12 +44,14 @@ public class MainActivity extends AppCompatActivity {
     GPXParser mParser = new GPXParser();
 
     TrackData tData = new TrackData();
+    LocalDateTime startTrack, endTrack;
     ArrayList<Photo> pData = new ArrayList<Photo>();
     String gpxFileName = "20190627.gpx";
     String photoFileName = "images/DSC01042.JPG";
     long tzOffset = 5;
 
     private static final int RQS_OPEN_GPX = 1;
+    private static final int RQS_OPEN_PHOTO_TREE = 2;
 
 
     @Override
@@ -78,9 +79,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                //addFragment(new MapFragment(), false, "one");
-                getPhotos();
-                MapFragment.displayPhotos(pData);
+                // Choose a directory using the system's file picker.
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+
+                // Provide read access to files and sub-directories in the user-selected
+                // directory.
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                // Optionally, specify a URI for the directory that should be opened in
+                // the system file picker when it loads.
+                //intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
+
+                startActivityForResult(intent, RQS_OPEN_PHOTO_TREE);
+
+//                getPhotos();
+//                MapFragment.displayPhotos(pData);
 
             }
         });
@@ -109,6 +122,11 @@ public class MainActivity extends AppCompatActivity {
                     TrackSegment segment = segments.get(j);
                     boolean firstPoint = true;
                     for (TrackPoint trackPoint : segment.getTrackPoints()) {
+                        if (firstPoint) {
+                            startTrack = trackPoint.getTime();
+                            firstPoint = false;
+                        } else
+                            endTrack = trackPoint.getTime();
                         tData.addTrackPoint(trackPoint);
                     }
                 }
@@ -126,9 +144,9 @@ public class MainActivity extends AppCompatActivity {
     public void getPhotos() {
         requestPhotos(pData);
         for (Photo photo : pData) {
-            String pdate = getPhotoDate(photo.getFname());
-            photo.setDate(LocalDateTime.parse(pdate, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset));
-            photo.setPosition(findPhotoOnTrack(photo.getFname(), photo.getDate()));
+            //String pdate = getPhotoDate(photo.getFname());
+            //photo.setDate(LocalDateTime.parse(pdate, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset));
+            // photo.setPosition(findPhotoOnTrack(photo.getFname(), photo.getDate()));
             int ww = 3;
         }
 
@@ -136,12 +154,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void requestPhotos(ArrayList<Photo> pData) {
         pData.clear();
-        Photo testPhoto = new Photo();
-        testPhoto.add(photoFileName);
+        Photo testPhoto = new Photo(photoFileName);
         pData.add(testPhoto);
     }
 
-    private LatLng findPhotoOnTrack(String photoFilename, LocalDateTime photodt) {
+    private LatLng findPhotoOnTrack(LocalDateTime photodt) {
         Double previousLat = 0.0;
         Double previousLon = 0.0;
         LocalDateTime previousTime = null;
@@ -150,6 +167,9 @@ public class MainActivity extends AppCompatActivity {
         long millisToEndpoint = 0;
         Double tagLat = 0.0;
         Double tagLon = 0.0;
+
+        if (photodt.isBefore(startTrack) || photodt.isAfter(endTrack))
+            return null;
 
         ArrayList<TrackPoint> points = tData.getTrackPoints();
         for (TrackPoint trackPoint : points) {
@@ -188,18 +208,20 @@ public class MainActivity extends AppCompatActivity {
     /*
      * Returns a photo's creation dare from it's EXIF data
      */
-    private String getPhotoDate(String fileName) {
+    private LocalDateTime getPhotoDate(Uri pUri) {
         InputStream mfile;
-        String ret = null;
+        LocalDateTime ret = null;
+        String dtStr;
 
         try {
-            AssetManager assetManager = getAssets();
-            mfile = assetManager.open(fileName);
-            ExifInterface exif = new ExifInterface(mfile);
-            ret = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
-            String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
-            String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
-            mfile.close();
+            InputStream inputStream = getBaseContext().getContentResolver().openInputStream(pUri);
+            ExifInterface exif = new ExifInterface(inputStream);
+            dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
+            if (dtStr != null)
+                ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset);
+            //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
+            //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+            inputStream.close();
         } catch (IOException e) {
             Log.e(TAG, "Photo file not found: " + e.getLocalizedMessage());
         }
@@ -238,8 +260,45 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "File not found: " + gpxUri.toString(), Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
+            } else if (requestCode == RQS_OPEN_PHOTO_TREE) {
+                Uri uriTree = data.getData();
+                DocumentFile documentFile = DocumentFile.fromTreeUri(this, uriTree);
+                pData.clear();
+                if (documentFile.listFiles() != null) {
+                    for (DocumentFile file : documentFile.listFiles()) {
+                        if (!file.isDirectory() && file.getType().equals("image/jpeg")) {
+                            Photo photo = new Photo(file.getName());
+                            photo.setUri(file.getUri());
+                            pData.add(photo);
+                        }
+                    }
+                }
+            }
+            if (pData.size() == 0)
+                Toast.makeText(this, "No jpeg files found", Toast.LENGTH_LONG).show();
+            else {
+                // Add a tag to the map for each file who's date/time is on the track's timeline
+                Iterator itr = pData.iterator();
+                Photo photo;
+                while (itr.hasNext()) {
+                    photo = (Photo) itr.next();
+                    LocalDateTime pDate = getPhotoDate(photo.getUri());
+                    LatLng pPos = findPhotoOnTrack(pDate);
+                    if (pDate == null || pPos == null)
+                        itr.remove();
+                    else {
+                        photo.setDate(pDate);
+                        photo.setPosition(pPos);
+                    }
+
+                }
+                int eww = pData.size();
+                Toast.makeText(this, "Size: " + eww, Toast.LENGTH_LONG).show();
+                MapFragment.displayPhotos(pData);
             }
         }
     }
 
 }
+
+

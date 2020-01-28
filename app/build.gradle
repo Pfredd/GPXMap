@@ -33,4 +33,5 @@ dependencies {
     implementation 'androidx.exifinterface:exifinterface:1.1.0'
     implementation 'androidx.exifinterface:exifinterface:1.1.0'
     implementation project(path: ':parser')
+    implementation 'androidx.documentfile:documentfile:1.0.1'
 }

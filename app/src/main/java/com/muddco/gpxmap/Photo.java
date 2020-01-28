@@ -12,7 +12,7 @@ public class Photo {
     private LocalDateTime date = null;
     private LatLng positiuon;
 
-    public void add(String pfname) {
+    public Photo(String pfname) {
         fileName = pfname;
     }
 
