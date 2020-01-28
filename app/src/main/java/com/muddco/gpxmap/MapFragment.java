@@ -2,7 +2,9 @@ package com.muddco.gpxmap;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.InputDevice;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -34,6 +36,25 @@ public class MapFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_map, container, false);
+        rootView.setOnGenericMotionListener(new View.OnGenericMotionListener() {
+            //
+            // Listen for mouse wheel events.
+            @Override
+            public boolean onGenericMotion(View v, MotionEvent event) {
+                if (0 != (event.getSource() & InputDevice.SOURCE_CLASS_POINTER)) {
+                    switch (event.getAction()) {
+                        case MotionEvent.ACTION_SCROLL:
+                            if (event.getAxisValue(MotionEvent.AXIS_VSCROLL) < 0.0f)
+                                mMap.animateCamera(CameraUpdateFactory.zoomIn());
+                            else
+                                mMap.animateCamera(CameraUpdateFactory.zoomOut());
+                            return true;
+                    }
+                }
+                return false;
+            }
+        });
+
 
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.frg);
         //use SuppoprtMapFragment for using in fragment instead of activity  MapFragment = activity   SupportMapFragment = fragment
