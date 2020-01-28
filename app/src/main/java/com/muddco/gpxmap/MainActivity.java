@@ -1,10 +1,16 @@
 package com.muddco.gpxmap;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.exifinterface.media.ExifInterface;
@@ -16,6 +22,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -43,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
     String photoFileName = "images/DSC01042.JPG";
     long tzOffset = 5;
 
+    private static final int RQS_OPEN_GPX = 1;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,10 +65,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                //addFragment(new OneFragment(), false, "one");
-                loadGPXFile();
-                MapFragment.displayTrack(tData);
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("application/gpx+xml");
 
+                startActivityForResult(intent, RQS_OPEN_GPX);
             }
         });
 
@@ -74,20 +85,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Load the map
         addFragment(new MapFragment(), false, "one");
-
-
     }
 
-    public void loadGPXFile() {
+    public void loadGPXFile(InputStream in) {
         Gpx parsedGpx = null;
 
-        /*
-         * Open and parse gpx file
-         */
-        InputStream in;
         try {
-            in = getAssets().open(gpxFileName);
             parsedGpx = mParser.parse(in);
             in.close();
         } catch (IOException | XmlPullParserException e) {
@@ -108,10 +113,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+            // Display the track on the map
+            MapFragment.displayTrack(tData);
 
         } else {
+            Toast.makeText(this, "GPX parse failed", Toast.LENGTH_LONG).show();
             Log.e(TAG, "Error parsing gpx track!");
-            System.exit(1);
         }
 
     }
@@ -211,4 +218,28 @@ public class MainActivity extends AppCompatActivity {
         ft.replace(R.id.container_frame_back, fragment, tag);
         ft.commitAllowingStateLoss();
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == Activity.RESULT_OK) {
+
+
+            if (requestCode == RQS_OPEN_GPX) {
+
+                Uri gpxUri = data.getData();
+
+                //Open the stream and process the file
+                try {
+                    InputStream inputStream = getBaseContext().getContentResolver().openInputStream(gpxUri);
+                    loadGPXFile(inputStream);
+                } catch (FileNotFoundException e) {
+                    Toast.makeText(this, "File not found: " + gpxUri.toString(), Toast.LENGTH_SHORT).show();
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
 }
