@@ -107,7 +107,7 @@ public class MapFragment extends Fragment {
         for (Photo photo : photoList) {
             mMap.addMarker(new MarkerOptions()
                     .position(photo.getPositiuon())
-                    .title("Hello world\n"));
+                    .title(photo.getFname()));
         }
     }
 }

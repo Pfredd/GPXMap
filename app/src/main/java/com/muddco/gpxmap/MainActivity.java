@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent();
                 intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("application/gpx+xml");
+                intent.setType("*/*");
 
                 startActivityForResult(intent, RQS_OPEN_GPX);
             }

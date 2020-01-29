@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">GPXMap</string>
-    <string name="title_activity_maps">Map</string>
+    <string name="title_activity_maps">GPXMap</string>
 </resources>
