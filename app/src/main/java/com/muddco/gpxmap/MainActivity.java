@@ -1,16 +1,18 @@
 package com.muddco.gpxmap;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.documentfile.provider.DocumentFile;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -38,29 +40,25 @@ import io.ticofab.androidgpxparser.parser.domain.TrackSegment;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button btn1, btn2;
     static final String TAG = "TEST123"; // GPXParserSampleActivity.class.getSimpleName();
-
+    private static final int RQS_OPEN_GPX = 1;
+    private static final int RQS_OPEN_PHOTO_TREE = 2;
     GPXParser mParser = new GPXParser();
-
     TrackData tData = new TrackData();
     LocalDateTime startTrack, endTrack;
     ArrayList<Photo> pData = new ArrayList<Photo>();
     String gpxFileName = "20190627.gpx";
     String photoFileName = "images/DSC01042.JPG";
     long tzOffset = 5;
-
-    private static final int RQS_OPEN_GPX = 1;
-    private static final int RQS_OPEN_PHOTO_TREE = 2;
-
+    private Button btn1, btn2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btn1 = (Button) findViewById(R.id.btn1);
-        btn2 = (Button) findViewById(R.id.btn2);
+        btn1 = findViewById(R.id.btn1);
+        btn2 = findViewById(R.id.btn2);
 
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -79,7 +77,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                // Choose a directory using the system's file picker.
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("image/jpeg");
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+
+                startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
+
+
+                /*// Choose a directory using the system's file picker.
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
 
                 // Provide read access to files and sub-directories in the user-selected
@@ -90,10 +96,8 @@ public class MainActivity extends AppCompatActivity {
                 // the system file picker when it loads.
                 //intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
 
-                startActivityForResult(intent, RQS_OPEN_PHOTO_TREE);
+                startActivityForResult(intent, RQS_OPEN_PHOTO_TREE);*/
 
-//                getPhotos();
-//                MapFragment.displayPhotos(pData);
 
             }
         });
@@ -246,59 +250,80 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == Activity.RESULT_OK) {
-
-
             if (requestCode == RQS_OPEN_GPX) {
-
+                // Process GPX file
                 Uri gpxUri = data.getData();
-
-                //Open the stream and process the file
                 try {
                     InputStream inputStream = getBaseContext().getContentResolver().openInputStream(gpxUri);
                     loadGPXFile(inputStream);
                 } catch (FileNotFoundException e) {
                     Toast.makeText(this, "File not found: " + gpxUri.toString(), Toast.LENGTH_SHORT).show();
-                    e.printStackTrace();
                 }
+
             } else if (requestCode == RQS_OPEN_PHOTO_TREE) {
-                Uri uriTree = data.getData();
-                DocumentFile documentFile = DocumentFile.fromTreeUri(this, uriTree);
-                pData.clear();
-                if (documentFile.listFiles() != null) {
-                    for (DocumentFile file : documentFile.listFiles()) {
-                        if (!file.isDirectory() && file.getType().equals("image/jpeg")) {
-                            Photo photo = new Photo(file.getName());
-                            photo.setUri(file.getUri());
-                            pData.add(photo);
+                // We actually do not use OPEN_TREE because it will not woirk with OneDrive
+                // Instead, we do an OPEN_DOCUMENT with a flag set that allows
+                // the user to select multiple files/
+
+                ClipData clipData = data.getClipData();
+                if (clipData == null) {
+                    Toast.makeText(this, "No jpeg files selected", Toast.LENGTH_LONG).show();
+                } else {
+                    pData.clear();
+                    for (int i = 0; i < clipData.getItemCount(); i++) {
+                        ClipData.Item item = clipData.getItemAt(i);
+                        Uri uri = item.getUri();
+                        Photo photo = new Photo(getFileName(uri));
+                        photo.setUri(uri);
+                        pData.add(photo);
+                    }
+                }
+
+                if (pData.size() == 0)
+                    Toast.makeText(this, "No jpeg files found", Toast.LENGTH_LONG).show();
+                else {
+                    Iterator itr = pData.iterator();
+                    Photo photo;
+                    while (itr.hasNext()) {
+                        photo = (Photo) itr.next();
+                        LocalDateTime pDate = getPhotoDate(photo.getUri());
+                        LatLng pPos = findPhotoOnTrack(pDate);
+                        if (pDate == null || pPos == null)
+                            itr.remove();
+                        else {
+                            photo.setDate(pDate);
+                            photo.setPosition(pPos);
                         }
                     }
+                    int eww = pData.size();
+                    Toast.makeText(this, eww + " photos found", Toast.LENGTH_LONG).show();
+                    MapFragment.displayPhotos(pData);
                 }
-            }
-            if (pData.size() == 0)
-                Toast.makeText(this, "No jpeg files found", Toast.LENGTH_LONG).show();
-            else {
-                // Add a tag to the map for each file who's date/time is on the track's timeline
-                Iterator itr = pData.iterator();
-                Photo photo;
-                while (itr.hasNext()) {
-                    photo = (Photo) itr.next();
-                    LocalDateTime pDate = getPhotoDate(photo.getUri());
-                    LatLng pPos = findPhotoOnTrack(pDate);
-                    if (pDate == null || pPos == null)
-                        itr.remove();
-                    else {
-                        photo.setDate(pDate);
-                        photo.setPosition(pPos);
-                    }
-
-                }
-                int eww = pData.size();
-                Toast.makeText(this, "Size: " + eww, Toast.LENGTH_LONG).show();
-                MapFragment.displayPhotos(pData);
             }
         }
     }
 
+    public String getFileName(Uri uri) {
+        String result = null;
+        if (uri.getScheme().equals("content")) {
+            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+            try {
+                if (cursor != null && cursor.moveToFirst()) {
+                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        if (result == null) {
+            result = uri.getPath();
+            int cut = result.lastIndexOf('/');
+            if (cut != -1) {
+                result = result.substring(cut + 1);
+            }
+        }
+        return result;
+    }
 }
 
 
