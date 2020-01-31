@@ -47,8 +47,6 @@ public class MainActivity extends AppCompatActivity {
     TrackData tData = new TrackData();
     LocalDateTime startTrack, endTrack;
     ArrayList<Photo> pData = new ArrayList<Photo>();
-    String gpxFileName = "20190627.gpx";
-    String photoFileName = "images/DSC01042.JPG";
     long tzOffset = 5;
     private Button btn1, btn2;
 
@@ -63,42 +61,34 @@ public class MainActivity extends AppCompatActivity {
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Prompt user to select gpx file
 
                 Intent intent = new Intent();
                 intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
 
-                startActivityForResult(intent, RQS_OPEN_GPX);
+                startActivityForResult(Intent.createChooser(intent, "Select a GPX file"), RQS_OPEN_GPX);
             }
         });
 
         btn2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                /*
+                 * Get the photo files.
+                 *
+                 * Normallky we would use the ACTION_OPEN_DOCUMENT_TREE intent.
+                 * However, that does not allow us to accedd OneDrive and other providers.
+                 * Insteade, we use ACTION_OPEN_DOCUMENT with a flag to indicate that the
+                 * user can select multiple files.
+                 */
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("image/jpeg");
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
                 startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
-
-
-                /*// Choose a directory using the system's file picker.
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-
-                // Provide read access to files and sub-directories in the user-selected
-                // directory.
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                // Optionally, specify a URI for the directory that should be opened in
-                // the system file picker when it loads.
-                //intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
-
-                startActivityForResult(intent, RQS_OPEN_PHOTO_TREE);*/
-
-
             }
         });
 
@@ -116,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             Log.e(TAG, "GPX file not found: " + e.getLocalizedMessage());
             int qq = 3;
+
         }
         if (parsedGpx != null) {
             List<Track> tracks = parsedGpx.getTracks();
@@ -143,23 +134,6 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Error parsing gpx track!");
         }
 
-    }
-
-    public void getPhotos() {
-        requestPhotos(pData);
-        for (Photo photo : pData) {
-            //String pdate = getPhotoDate(photo.getFname());
-            //photo.setDate(LocalDateTime.parse(pdate, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset));
-            // photo.setPosition(findPhotoOnTrack(photo.getFname(), photo.getDate()));
-            int ww = 3;
-        }
-
-    }
-
-    public void requestPhotos(ArrayList<Photo> pData) {
-        pData.clear();
-        Photo testPhoto = new Photo(photoFileName);
-        pData.add(testPhoto);
     }
 
     private LatLng findPhotoOnTrack(LocalDateTime photodt) {
@@ -266,10 +240,12 @@ public class MainActivity extends AppCompatActivity {
                 // the user to select multiple files/
 
                 ClipData clipData = data.getClipData();
-                if (clipData == null) {
+                Uri pUri = data.getData();
+                if (clipData == null && pUri == null) {  // Don't know if this can actually happen...
                     Toast.makeText(this, "No jpeg files selected", Toast.LENGTH_LONG).show();
-                } else {
+                } else if (clipData != null) {  // User selected multiple files
                     pData.clear();
+                    int numPhotos = clipData.getItemCount();
                     for (int i = 0; i < clipData.getItemCount(); i++) {
                         ClipData.Item item = clipData.getItemAt(i);
                         Uri uri = item.getUri();
@@ -277,27 +253,35 @@ public class MainActivity extends AppCompatActivity {
                         photo.setUri(uri);
                         pData.add(photo);
                     }
+                } else { // User only selected one file
+                    Photo photo = new Photo(getFileName(pUri));
+                    photo.setUri(pUri);
+                    pData.add(photo);
                 }
-
-                if (pData.size() == 0)
+                int pdataCount = pData.size();
+                if (pData.size() == 0)  // I don't think this could actuallyt happen, but lets be safe...
                     Toast.makeText(this, "No jpeg files found", Toast.LENGTH_LONG).show();
                 else {
-                    Iterator itr = pData.iterator();
                     Photo photo;
+                    Iterator itr = pData.iterator();
                     while (itr.hasNext()) {
                         photo = (Photo) itr.next();
                         LocalDateTime pDate = getPhotoDate(photo.getUri());
-                        LatLng pPos = findPhotoOnTrack(pDate);
-                        if (pDate == null || pPos == null)
+                        if (pDate == null)
                             itr.remove();
                         else {
-                            photo.setDate(pDate);
-                            photo.setPosition(pPos);
+                            LatLng pPos = findPhotoOnTrack(pDate);
+                            if (pPos == null)
+                                itr.remove();
+                            else {
+                                photo.setDate(pDate);
+                                photo.setPosition(pPos);
+                            }
                         }
                     }
-                    int eww = pData.size();
-                    Toast.makeText(this, eww + " photos found", Toast.LENGTH_LONG).show();
-                    MapFragment.displayPhotos(pData);
+                    Toast.makeText(this, pData.size() + " photos found", Toast.LENGTH_LONG).show();
+                    if (pData.size() > 0)
+                        MapFragment.displayPhotos(pData);
                 }
             }
         }
@@ -306,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
     public String getFileName(Uri uri) {
         String result = null;
         if (uri.getScheme().equals("content")) {
-            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+            Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
             try {
                 if (cursor != null && cursor.moveToFirst()) {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
