@@ -105,6 +105,8 @@ public class MainActivity extends AppCompatActivity {
             int qq = 3;
 
         }
+        int numPoints = 0;
+
         if (parsedGpx != null) {
             List<Track> tracks = parsedGpx.getTracks();
             for (int i = 0; i < tracks.size(); i++) {
@@ -120,11 +122,15 @@ public class MainActivity extends AppCompatActivity {
                         } else
                             endTrack = trackPoint.getTime();
                         tData.addTrackPoint(trackPoint);
+                        numPoints++;
                     }
                 }
             }
             // Display the track on the map
             MapFragment.displayTrack(tData);
+            binding.trackStartTime.setText(startTrack.toString());
+            binding.trackEndTime.setText(endTrack.toString());
+            binding.trackNumPoints.setText(String.valueOf(numPoints));
 
         } else {
             Toast.makeText(this, "GPX parse failed", Toast.LENGTH_LONG).show();
