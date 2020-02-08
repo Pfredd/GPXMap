@@ -3,35 +3,77 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <Button
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:id="@+id/loadGpxButton"
-            android:layout_height="wrap_content"
-            android:text="Select GPX File " />
-
-        <Button
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:id="@+id/loadPhotosButton"
-            android:layout_height="wrap_content"
-            android:text="Select Photos" />
-    </LinearLayout>
-
+    <!-- Screen -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/container_frame_back"
-        android:layout_marginTop="5dp"
         android:orientation="horizontal">
+        <!-- Left panel -->
+        <LinearLayout
+            android:layout_width="517dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <!-- Button container -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
+                <Button
+                    android:id="@+id/loadGpxButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Select GPX File " />
 
+                <Button
+                    android:id="@+id/loadPhotosButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Select Photos" />
+            </LinearLayout>
+            <!-- Track info -->
+            <LinearLayout
+                android:layout_width="517dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/trackStartTime"
+                    android:text="@{trackinfo.getStartTime()}"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/trackEndTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@{trackinfo.getEndTime()}"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/trackNumPoints"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@{trackinfo.getNumPoints()}"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/debug"
+                    android:layout_width="match_parent"
+                    android:layout_height="600dp"
+                    android:text="{trackview.debug}"
+                    android:textSize="24sp" />
+            </LinearLayout>
+        </LinearLayout>
+        <!-- Right Panel - Container for map -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/container_frame_back"
+            android:layout_marginTop="5dp"
+            android:orientation="horizontal"></LinearLayout>
     </LinearLayout>
-
 </LinearLayout>
