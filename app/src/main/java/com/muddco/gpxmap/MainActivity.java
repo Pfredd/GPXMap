@@ -19,6 +19,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.muddco.gpxmap.databinding.ActivityMainBinding;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -46,54 +47,50 @@ public class MainActivity extends AppCompatActivity {
     GPXParser mParser = new GPXParser();
     TrackData tData = new TrackData();
     LocalDateTime startTrack, endTrack;
-    ArrayList<Photo> pData = new ArrayList<Photo>();
+    ArrayList<Photo> pData = new ArrayList<>();
     long tzOffset = 5;
     private Button btn1, btn2;
+    private ActivityMainBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
-        btn1 = findViewById(R.id.btn1);
-        btn2 = findViewById(R.id.btn2);
+        binding.loadGpxButton.setOnClickListener(v -> loadGpxClicked());
+        binding.loadPhotosButton.setOnClickListener(v -> loadPhotosClicked());
 
-        btn1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Prompt user to select gpx file
-
-                Intent intent = new Intent();
-                intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("*/*");
-
-                startActivityForResult(Intent.createChooser(intent, "Select a GPX file"), RQS_OPEN_GPX);
-            }
-        });
-
-        btn2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                /*
-                 * Get the photo files.
-                 *
-                 * Normallky we would use the ACTION_OPEN_DOCUMENT_TREE intent.
-                 * However, that does not allow us to accedd OneDrive and other providers.
-                 * Insteade, we use ACTION_OPEN_DOCUMENT with a flag to indicate that the
-                 * user can select multiple files.
-                 */
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("image/jpeg");
-                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-
-                startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
-            }
-        });
-
-        // Load the map
         addFragment(new MapFragment(), false, "one");
+    }
+
+    private void loadGpxClicked() {
+        // Prompt user to select gpx file
+
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+
+        startActivityForResult(Intent.createChooser(intent, "Select a GPX file"), RQS_OPEN_GPX);
+    }
+
+    private void loadPhotosClicked() {
+        /*
+         * Get the photo files.
+         *
+         * Normallky we would use the ACTION_OPEN_DOCUMENT_TREE intent.
+         * However, that does not allow us to accedd OneDrive and other providers.
+         * Insteade, we use ACTION_OPEN_DOCUMENT with a flag to indicate that the
+         * user can select multiple files.
+         */
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/jpeg");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+
+        startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
     }
 
     public void loadGPXFile(InputStream in) {
@@ -193,13 +190,15 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             InputStream inputStream = getBaseContext().getContentResolver().openInputStream(pUri);
-            ExifInterface exif = new ExifInterface(inputStream);
-            dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
-            if (dtStr != null)
-                ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset);
-            //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
-            //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
-            inputStream.close();
+            if (inputStream != null) {
+                ExifInterface exif = new ExifInterface(inputStream);
+                dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
+                if (dtStr != null)
+                    ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset);
+                //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
+                //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+                inputStream.close();
+            }
         } catch (IOException e) {
             Log.e(TAG, "Photo file not found: " + e.getLocalizedMessage());
         }
@@ -227,12 +226,15 @@ public class MainActivity extends AppCompatActivity {
             if (requestCode == RQS_OPEN_GPX) {
                 // Process GPX file
                 Uri gpxUri = data.getData();
-                try {
-                    InputStream inputStream = getBaseContext().getContentResolver().openInputStream(gpxUri);
-                    loadGPXFile(inputStream);
-                } catch (FileNotFoundException e) {
-                    Toast.makeText(this, "File not found: " + gpxUri.toString(), Toast.LENGTH_SHORT).show();
-                }
+                if (gpxUri != null) {
+                    try {
+                        InputStream inputStream = getBaseContext().getContentResolver().openInputStream(gpxUri);
+                        loadGPXFile(inputStream);
+                    } catch (FileNotFoundException e) {
+                        Toast.makeText(this, "File not found: " + gpxUri.toString(), Toast.LENGTH_SHORT).show();
+                    }
+                } else
+                    Toast.makeText(this, "URI is null!", Toast.LENGTH_LONG).show();
 
             } else if (requestCode == RQS_OPEN_PHOTO_TREE) {
                 // We actually do not use OPEN_TREE because it will not woirk with OneDrive
@@ -289,14 +291,17 @@ public class MainActivity extends AppCompatActivity {
 
     public String getFileName(Uri uri) {
         String result = null;
-        if (uri.getScheme().equals("content")) {
+
+        String scheme = uri.getScheme();
+        if (scheme != null && scheme.equals("content")) {
             Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
             try {
                 if (cursor != null && cursor.moveToFirst()) {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                 }
             } finally {
-                cursor.close();
+                if (cursor != null)
+                    cursor.close();
             }
         }
         if (result == null) {

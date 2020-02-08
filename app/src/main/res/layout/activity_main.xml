@@ -12,14 +12,14 @@
         <Button
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:id="@+id/btn1"
+            android:id="@+id/loadGpxButton"
             android:layout_height="wrap_content"
             android:text="Select GPX File " />
 
         <Button
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:id="@+id/btn2"
+            android:id="@+id/loadPhotosButton"
             android:layout_height="wrap_content"
             android:text="Select Photos" />
     </LinearLayout>
