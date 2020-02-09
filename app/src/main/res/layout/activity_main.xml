@@ -12,6 +12,8 @@
         <LinearLayout
             android:layout_width="517dp"
             android:layout_height="match_parent"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
             android:orientation="vertical">
             <!-- Button container -->
             <LinearLayout
@@ -33,6 +35,66 @@
                     android:layout_weight="1"
                     android:text="Select Photos" />
             </LinearLayout>
+
+            <!-- Time offset containers -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/rounded_corners">
+
+                <!-- Title -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Time Offsets"
+                    android:textAlignment="center"
+                    android:textStyle="bold"
+                    android:textSize="18sp" />
+                />
+
+                <!-- CameraTime offset container -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Camera time offset from GMT:" />
+
+                    <EditText
+                        android:id="@+id/cameraOffset"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:inputType="numberSigned" />
+
+                </LinearLayout>
+                <!-- Local time offset container -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Local time offset from GMT:" />
+
+                    <EditText
+                        android:id="@+id/localOffset"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:inputType="numberSigned" />
+
+                </LinearLayout>
+            </LinearLayout>
             <!-- Track info -->
             <LinearLayout
                 android:layout_width="517dp"
@@ -41,10 +103,10 @@
 
                 <TextView
                     android:id="@+id/trackStartTime"
-                    android:text="@{trackinfo.getStartTime()}"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="24sp" />
+                    android:text="@{trackinfo.getStartTime()}"
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/trackEndTime"
@@ -61,11 +123,12 @@
                     android:textSize="24sp" />
 
                 <TextView
-                    android:id="@+id/debug"
+                    android:id="@+id/numPhotos"
                     android:layout_width="match_parent"
                     android:layout_height="600dp"
                     android:text="{trackview.debug}"
                     android:textSize="24sp" />
+
             </LinearLayout>
         </LinearLayout>
         <!-- Right Panel - Container for map -->

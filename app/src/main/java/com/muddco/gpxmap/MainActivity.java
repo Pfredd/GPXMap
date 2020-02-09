@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     TrackData tData = new TrackData();
     LocalDateTime startTrack, endTrack;
     ArrayList<Photo> pData = new ArrayList<>();
-    long tzOffset = 5;
+    long tzOffset = -5;
     private Button btn1, btn2;
     private ActivityMainBinding binding;
 
@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
         View view = binding.getRoot();
         setContentView(view);
 
+        binding.cameraOffset.setText(String.valueOf(tzOffset));
+        binding.localOffset.setText(String.valueOf(tzOffset));
         binding.loadGpxButton.setOnClickListener(v -> loadGpxClicked());
         binding.loadPhotosButton.setOnClickListener(v -> loadPhotosClicked());
 
@@ -128,8 +130,21 @@ public class MainActivity extends AppCompatActivity {
             }
             // Display the track on the map
             MapFragment.displayTrack(tData);
-            binding.trackStartTime.setText(startTrack.toString());
-            binding.trackEndTime.setText(endTrack.toString());
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM dd yyyy hh:mm a");
+
+            String sString = "invalid";
+            String eString = "invalid";
+            try {
+                int offset = 0;
+                offset = Integer.parseInt(binding.localOffset.getText().toString());
+                sString = startTrack.plusHours(offset).format(formatter);
+                eString = endTrack.plusHours(offset).format(formatter);
+            } catch (NumberFormatException nfe) {
+                System.out.println("Could not parse " + nfe);
+            }
+
+            binding.trackStartTime.setText(sString);
+            binding.trackEndTime.setText(eString);
             binding.trackNumPoints.setText(String.valueOf(numPoints));
 
         } else {
@@ -199,10 +214,17 @@ public class MainActivity extends AppCompatActivity {
             if (inputStream != null) {
                 ExifInterface exif = new ExifInterface(inputStream);
                 dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
-                if (dtStr != null)
-                    ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset);
-                //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
-                //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+                int offset = 0;
+                if (dtStr != null) {
+                    try {
+                        offset = Integer.parseInt(binding.cameraOffset.getText().toString());
+                    } catch (NumberFormatException nfe) {
+                        System.out.println("Could not parse " + nfe);
+                    }
+                    ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(offset * -1);
+                    //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
+                    //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+                }
                 inputStream.close();
             }
         } catch (IOException e) {
@@ -271,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "No jpeg files found", Toast.LENGTH_LONG).show();
                 else {
                     Photo photo;
+                    int pCount = 0;
                     Iterator itr = pData.iterator();
                     while (itr.hasNext()) {
                         photo = (Photo) itr.next();
@@ -282,6 +305,8 @@ public class MainActivity extends AppCompatActivity {
                             if (pPos == null)
                                 itr.remove();
                             else {
+                                pCount++;
+                                binding.numPhotos.setText(String.valueOf(pCount));
                                 photo.setDate(pDate);
                                 photo.setPosition(pPos);
                             }
