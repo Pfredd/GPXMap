@@ -9,7 +9,10 @@ import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -39,7 +42,7 @@ import io.ticofab.androidgpxparser.parser.domain.TrackPoint;
 import io.ticofab.androidgpxparser.parser.domain.TrackSegment;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
     static final String TAG = "TEST123"; // GPXParserSampleActivity.class.getSimpleName();
     private static final int RQS_OPEN_GPX = 1;
@@ -63,6 +66,18 @@ public class MainActivity extends AppCompatActivity {
         binding.localOffset.setText(String.valueOf(tzOffset));
         binding.loadGpxButton.setOnClickListener(v -> loadGpxClicked());
         binding.loadPhotosButton.setOnClickListener(v -> loadPhotosClicked());
+
+        // Set up spinners
+//        Spinner cameraOffsetSpinner = binding.cameraOffset;
+//        Spinner localOffsetSpinner = binding.localOffset;
+//        ArrayAdapter<CharSequence> cameraAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
+//        ArrayAdapter<CharSequence> localAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
+//        cameraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        localAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        cameraOffsetSpinner.setAdapter(cameraAdapter);
+//        localOffsetSpinner.setAdapter(localAdapter);
+//        cameraOffsetSpinner.setOnItemSelectedListener(this);
+//        localOffsetSpinner.setOnItemSelectedListener(this);
 
         addFragment(new MapFragment(), false, "one");
     }
@@ -136,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
             String eString = "invalid";
             try {
                 int offset = 0;
-                offset = Integer.parseInt(binding.localOffset.getText().toString());
+//                offset = Integer.parseInt(binding.localOffset.getText().toString());
                 sString = startTrack.plusHours(offset).format(formatter);
                 eString = endTrack.plusHours(offset).format(formatter);
             } catch (NumberFormatException nfe) {
@@ -217,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
                 int offset = 0;
                 if (dtStr != null) {
                     try {
-                        offset = Integer.parseInt(binding.cameraOffset.getText().toString());
+//                        offset = Integer.parseInt(binding.cameraOffset.getText().toString());
                     } catch (NumberFormatException nfe) {
                         System.out.println("Could not parse " + nfe);
                     }
@@ -317,6 +332,7 @@ public class MainActivity extends AppCompatActivity {
                         MapFragment.displayPhotos(pData);
                 }
             }
+            int qqww = 345;
         }
     }
 
@@ -344,6 +360,20 @@ public class MainActivity extends AppCompatActivity {
         }
         return result;
     }
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view,
+                                   int pos, long id) {
+            // An item was selected. You can retrieve the selected item using
+            // parent.getItemAtPosition(pos)
+            int yu=33;
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {
+            // Another interface callback
+            int oi=90;
+        }
+
 }
 
 
