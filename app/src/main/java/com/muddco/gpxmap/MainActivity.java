@@ -62,22 +62,22 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         View view = binding.getRoot();
         setContentView(view);
 
-        binding.cameraOffset.setText(String.valueOf(tzOffset));
-        binding.localOffset.setText(String.valueOf(tzOffset));
+//        binding.cameraOffset.setText(String.valueOf(tzOffset));
+//        binding.localOffset.setText(String.valueOf(tzOffset));
         binding.loadGpxButton.setOnClickListener(v -> loadGpxClicked());
         binding.loadPhotosButton.setOnClickListener(v -> loadPhotosClicked());
 
         // Set up spinners
-//        Spinner cameraOffsetSpinner = binding.cameraOffset;
-//        Spinner localOffsetSpinner = binding.localOffset;
-//        ArrayAdapter<CharSequence> cameraAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
-//        ArrayAdapter<CharSequence> localAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
-//        cameraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//        localAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//        cameraOffsetSpinner.setAdapter(cameraAdapter);
-//        localOffsetSpinner.setAdapter(localAdapter);
-//        cameraOffsetSpinner.setOnItemSelectedListener(this);
-//        localOffsetSpinner.setOnItemSelectedListener(this);
+        Spinner cameraOffsetSpinner = binding.cameraOffset;
+        Spinner localOffsetSpinner = binding.localOffset;
+        ArrayAdapter<CharSequence> cameraAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> localAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
+        cameraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        localAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        cameraOffsetSpinner.setAdapter(cameraAdapter);
+        localOffsetSpinner.setAdapter(localAdapter);
+        cameraOffsetSpinner.setOnItemSelectedListener(this);
+        localOffsetSpinner.setOnItemSelectedListener(this);
 
         addFragment(new MapFragment(), false, "one");
     }
