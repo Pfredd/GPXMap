@@ -11,7 +11,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -52,8 +51,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     LocalDateTime startTrack, endTrack;
     ArrayList<Photo> pData = new ArrayList<>();
     long tzOffset = -5;
-    private Button btn1, btn2;
     private ActivityMainBinding binding;
+    private int cameraOffset = -5;
+    private int localOffset = 7;
+    private Spinner cameraOffsetSpinner;
+    private Spinner localOffsetSpinner;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,23 +65,22 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         View view = binding.getRoot();
         setContentView(view);
 
-//        binding.cameraOffset.setText(String.valueOf(tzOffset));
-//        binding.localOffset.setText(String.valueOf(tzOffset));
         binding.loadGpxButton.setOnClickListener(v -> loadGpxClicked());
         binding.loadPhotosButton.setOnClickListener(v -> loadPhotosClicked());
 
         // Set up spinners
-        Spinner cameraOffsetSpinner = binding.cameraOffset;
-        Spinner localOffsetSpinner = binding.localOffset;
-        ArrayAdapter<CharSequence> cameraAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
-        ArrayAdapter<CharSequence> localAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
-        cameraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        localAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        cameraOffsetSpinner.setAdapter(cameraAdapter);
-        localOffsetSpinner.setAdapter(localAdapter);
+        cameraOffsetSpinner = binding.cameraOffsetSpinner;
+        localOffsetSpinner = binding.localOffsetSpinner;
+        ArrayAdapter<CharSequence> tzOffsetAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
+        tzOffsetAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        cameraOffsetSpinner.setAdapter(tzOffsetAdapter);
+        localOffsetSpinner.setAdapter(tzOffsetAdapter);
         cameraOffsetSpinner.setOnItemSelectedListener(this);
         localOffsetSpinner.setOnItemSelectedListener(this);
+        cameraOffsetSpinner.setSelection(calcOffset(cameraOffset));
+        localOffsetSpinner.setSelection(calcOffset(localOffset));
 
+        // Load Map
         addFragment(new MapFragment(), false, "one");
     }
 
@@ -108,146 +110,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
         startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
-    }
-
-    public void loadGPXFile(InputStream in) {
-        Gpx parsedGpx = null;
-
-        try {
-            parsedGpx = mParser.parse(in);
-            in.close();
-        } catch (IOException | XmlPullParserException e) {
-            e.printStackTrace();
-            Log.e(TAG, "GPX file not found: " + e.getLocalizedMessage());
-            int qq = 3;
-
-        }
-        int numPoints = 0;
-
-        if (parsedGpx != null) {
-            List<Track> tracks = parsedGpx.getTracks();
-            for (int i = 0; i < tracks.size(); i++) {
-                Track track = tracks.get(i);
-                List<TrackSegment> segments = track.getTrackSegments();
-                for (int j = 0; j < segments.size(); j++) {
-                    TrackSegment segment = segments.get(j);
-                    boolean firstPoint = true;
-                    for (TrackPoint trackPoint : segment.getTrackPoints()) {
-                        if (firstPoint) {
-                            startTrack = trackPoint.getTime();
-                            firstPoint = false;
-                        } else
-                            endTrack = trackPoint.getTime();
-                        tData.addTrackPoint(trackPoint);
-                        numPoints++;
-                    }
-                }
-            }
-            // Display the track on the map
-            MapFragment.displayTrack(tData);
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM dd yyyy hh:mm a");
-
-            String sString = "invalid";
-            String eString = "invalid";
-            try {
-                int offset = 0;
-//                offset = Integer.parseInt(binding.localOffset.getText().toString());
-                sString = startTrack.plusHours(offset).format(formatter);
-                eString = endTrack.plusHours(offset).format(formatter);
-            } catch (NumberFormatException nfe) {
-                System.out.println("Could not parse " + nfe);
-            }
-
-            binding.trackStartTime.setText(sString);
-            binding.trackEndTime.setText(eString);
-            binding.trackNumPoints.setText(String.valueOf(numPoints));
-
-        } else {
-            Toast.makeText(this, "GPX parse failed", Toast.LENGTH_LONG).show();
-            Log.e(TAG, "Error parsing gpx track!");
-        }
-
-    }
-
-    private LatLng findPhotoOnTrack(LocalDateTime photodt) {
-        Double previousLat = 0.0;
-        Double previousLon = 0.0;
-        LocalDateTime previousTime = null;
-        LocalDateTime pointdt;
-        long millisToPhoto = 0;
-        long millisToEndpoint = 0;
-        Double tagLat = 0.0;
-        Double tagLon = 0.0;
-
-        if (photodt.isBefore(startTrack) || photodt.isAfter(endTrack))
-            return null;
-
-        ArrayList<TrackPoint> points = tData.getTrackPoints();
-        for (TrackPoint trackPoint : points) {
-            pointdt = trackPoint.getTime();
-            if (!photodt.isBefore(pointdt) && !photodt.isEqual(pointdt)) {
-                Boolean test = photodt.isEqual(pointdt);
-                previousLat = trackPoint.getLatitude();
-                previousLon = trackPoint.getLongitude();
-                previousTime = trackPoint.getTime();
-            } else {
-                try {
-                    millisToPhoto = java.time.Duration.between(previousTime, photodt).toMillis();
-                    millisToEndpoint = java.time.Duration.between(previousTime, pointdt).toMillis();
-                } catch (NullPointerException e) {
-                    e.printStackTrace();
-                    System.exit(1);
-                }
-                if (millisToEndpoint != millisToPhoto) {
-                    // Photo was taken between track data points. So we have to extrapolate the position
-                    float pct = (float) millisToPhoto / (float) millisToEndpoint;
-                    extrapolatePoint midPoint = new extrapolatePoint(previousLat, previousLon, trackPoint.getLatitude(), trackPoint.getLongitude(), pct);
-                    tagLat = midPoint.latitude();
-                    tagLon = midPoint.longitude();
-                } else {
-                    // Photo was taken at a track point locatrion
-                    tagLat = trackPoint.getLatitude();
-                    tagLon = trackPoint.getLongitude();
-
-                }
-                break;
-            }
-        }
-        return (new LatLng(tagLat, tagLon));
-    }
-
-    /*
-     * Returns a photo's creation dare from it's EXIF data
-     */
-    private LocalDateTime getPhotoDate(Uri pUri) {
-        InputStream mfile;
-        LocalDateTime ret = null;
-        String dtStr;
-
-        try {
-            InputStream inputStream = getBaseContext().getContentResolver().openInputStream(pUri);
-            if (inputStream != null) {
-                ExifInterface exif = new ExifInterface(inputStream);
-                dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
-                int offset = 0;
-                if (dtStr != null) {
-                    try {
-//                        offset = Integer.parseInt(binding.cameraOffset.getText().toString());
-                    } catch (NumberFormatException nfe) {
-                        System.out.println("Could not parse " + nfe);
-                    }
-                    ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(offset * -1);
-                    //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
-                    //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
-                }
-                inputStream.close();
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "Photo file not found: " + e.getLocalizedMessage());
-        }
-
-        return (ret);
-
     }
 
     public void addFragment(Fragment fragment, boolean addToBackStack, String tag) {
@@ -336,44 +198,183 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
+    public void loadGPXFile(InputStream in) {
+        Gpx parsedGpx = null;
+
+        try {
+            parsedGpx = mParser.parse(in);
+            in.close();
+        } catch (IOException | XmlPullParserException e) {
+            e.printStackTrace();
+            Log.e(TAG, "GPX file not found: " + e.getLocalizedMessage());
+            int qq = 3;
+
+        }
+        int numPoints = 0;
+
+        if (parsedGpx != null) {
+            List<Track> tracks = parsedGpx.getTracks();
+            for (int i = 0; i < tracks.size(); i++) {
+                Track track = tracks.get(i);
+                List<TrackSegment> segments = track.getTrackSegments();
+                for (int j = 0; j < segments.size(); j++) {
+                    TrackSegment segment = segments.get(j);
+                    boolean firstPoint = true;
+                    for (TrackPoint trackPoint : segment.getTrackPoints()) {
+                        if (firstPoint) {
+                            startTrack = trackPoint.getTime();
+                            firstPoint = false;
+                        } else
+                            endTrack = trackPoint.getTime();
+                        tData.addTrackPoint(trackPoint);
+                        numPoints++;
+                    }
+                }
+            }
+            // Display the track on the map
+            MapFragment.displayTrack(tData);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM dd yyyy hh:mm a");
+
+            String sString = "invalid";
+            String eString = "invalid";
+            try {
+                sString = startTrack.plusHours(localOffset).format(formatter);
+                eString = endTrack.plusHours(localOffset).format(formatter);
+            } catch (NumberFormatException nfe) {
+                System.out.println("Could not parse " + nfe);
+            }
+
+            binding.trackStartTime.setText(sString);
+            binding.trackEndTime.setText(eString);
+            binding.trackNumPoints.setText(String.valueOf(numPoints));
+
+        } else {
+            Toast.makeText(this, "GPX parse failed", Toast.LENGTH_LONG).show();
+            Log.e(TAG, "Error parsing gpx track!");
+        }
+
+    }
+
+    private LatLng findPhotoOnTrack(LocalDateTime photodt) {
+        Double previousLat = 0.0;
+        Double previousLon = 0.0;
+        LocalDateTime previousTime = null;
+        LocalDateTime pointdt;
+        long millisToPhoto = 0;
+        long millisToEndpoint = 0;
+        Double tagLat = 0.0;
+        Double tagLon = 0.0;
+
+        if (photodt.isBefore(startTrack) || photodt.isAfter(endTrack))
+            return null;
+
+        ArrayList<TrackPoint> points = tData.getTrackPoints();
+        for (TrackPoint trackPoint : points) {
+            pointdt = trackPoint.getTime();
+            if (!photodt.isBefore(pointdt) && !photodt.isEqual(pointdt)) {
+                Boolean test = photodt.isEqual(pointdt);
+                previousLat = trackPoint.getLatitude();
+                previousLon = trackPoint.getLongitude();
+                previousTime = trackPoint.getTime();
+            } else {
+                try {
+                    millisToPhoto = java.time.Duration.between(previousTime, photodt).toMillis();
+                    millisToEndpoint = java.time.Duration.between(previousTime, pointdt).toMillis();
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+                if (millisToEndpoint != millisToPhoto) {
+                    // Photo was taken between track data points. So we have to extrapolate the position
+                    float pct = (float) millisToPhoto / (float) millisToEndpoint;
+                    extrapolatePoint midPoint = new extrapolatePoint(previousLat, previousLon, trackPoint.getLatitude(), trackPoint.getLongitude(), pct);
+                    tagLat = midPoint.latitude();
+                    tagLon = midPoint.longitude();
+                } else {
+                    // Photo was taken at a track point locatrion
+                    tagLat = trackPoint.getLatitude();
+                    tagLon = trackPoint.getLongitude();
+
+                }
+                break;
+            }
+        }
+        return (new LatLng(tagLat, tagLon));
+    }
+
+    /*
+     * Returns a photo's creation dare from it's EXIF data
+     */
+    private LocalDateTime getPhotoDate(Uri pUri) {
+        InputStream mfile;
+        LocalDateTime ret = null;
+        String dtStr;
+
+        try {
+            InputStream inputStream = getBaseContext().getContentResolver().openInputStream(pUri);
+            if (inputStream != null) {
+                ExifInterface exif = new ExifInterface(inputStream);
+                dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
+                if (dtStr != null) {
+                    ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(cameraOffset * -1);
+                    //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
+                    //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+                }
+                inputStream.close();
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Photo file not found: " + e.getLocalizedMessage());
+        }
+
+        return (ret);
+
+    }
+
+
     public String getFileName(Uri uri) {
         String result = null;
 
         String scheme = uri.getScheme();
         if (scheme != null && scheme.equals("content")) {
-            Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
-            try {
+            try (Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                 }
-            } finally {
-                if (cursor != null)
-                    cursor.close();
             }
         }
         if (result == null) {
             result = uri.getPath();
-            int cut = result.lastIndexOf('/');
+            int cut;
+            try {
+                cut = result.lastIndexOf('/');
+            } catch (NullPointerException e) {
+                cut = -1;
+            }
             if (cut != -1) {
                 result = result.substring(cut + 1);
             }
         }
         return result;
     }
-        @Override
-        public void onItemSelected(AdapterView<?> parent, View view,
-                                   int pos, long id) {
-            // An item was selected. You can retrieve the selected item using
-            // parent.getItemAtPosition(pos)
-            int yu=33;
-        }
 
-        @Override
-        public void onNothingSelected(AdapterView<?> parent) {
-            // Another interface callback
-            int oi=90;
-        }
+    private int calcOffset(int val) {
+        return 12 + val;
+    }
 
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+        if (parent.getId() == cameraOffsetSpinner.getId())
+            cameraOffset = (int) id - 12;
+        else if (parent.getId() == localOffsetSpinner.getId())
+            localOffset = (int) id - 12;
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Required by the Spinnerd
+    }
 }
+
+
 
 
