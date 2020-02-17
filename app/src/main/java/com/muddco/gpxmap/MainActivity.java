@@ -2,6 +2,7 @@ package com.muddco.gpxmap;
 
 import android.app.Activity;
 import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -43,42 +44,51 @@ import io.ticofab.androidgpxparser.parser.domain.TrackSegment;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
-    static final String TAG = "TEST123"; // GPXParserSampleActivity.class.getSimpleName();
+    static final String TAG = "TEST123";
     private static final int RQS_OPEN_GPX = 1;
     private static final int RQS_OPEN_PHOTO_TREE = 2;
     GPXParser mParser = new GPXParser();
     TrackData tData = new TrackData();
     LocalDateTime startTrack, endTrack;
     ArrayList<Photo> pData = new ArrayList<>();
-    long tzOffset = -5;
+    static public Context appContext;
     private ActivityMainBinding binding;
     private int cameraOffset = -5;
-    private int localOffset = 7;
+    private int localOffset = -8;
     private Spinner cameraOffsetSpinner;
     private Spinner localOffsetSpinner;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ArrayAdapter<CharSequence> tzOffsetAdapter;
+
         super.onCreate(savedInstanceState);
+
+        // Bind the view
+        // Uses the new "View Binding" feature introduced in Android Studio 3.6
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         View view = binding.getRoot();
         setContentView(view);
 
+        appContext = getApplicationContext();
+
+        //Set button click handlers
         binding.loadGpxButton.setOnClickListener(v -> loadGpxClicked());
         binding.loadPhotosButton.setOnClickListener(v -> loadPhotosClicked());
 
         // Set up spinners
         cameraOffsetSpinner = binding.cameraOffsetSpinner;
         localOffsetSpinner = binding.localOffsetSpinner;
-        ArrayAdapter<CharSequence> tzOffsetAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
+        tzOffsetAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
         tzOffsetAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         cameraOffsetSpinner.setAdapter(tzOffsetAdapter);
         localOffsetSpinner.setAdapter(tzOffsetAdapter);
         cameraOffsetSpinner.setOnItemSelectedListener(this);
         localOffsetSpinner.setOnItemSelectedListener(this);
-        cameraOffsetSpinner.setSelection(calcOffset(cameraOffset));
-        localOffsetSpinner.setSelection(calcOffset(localOffset));
+
+        // Set initial values for Spinners
+        cameraOffsetSpinner.setSelection(12 + cameraOffset);
+        localOffsetSpinner.setSelection(12 + localOffset);
 
         // Load Map
         addFragment(new MapFragment(), false, "one");
@@ -252,9 +262,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Toast.makeText(this, "GPX parse failed", Toast.LENGTH_LONG).show();
             Log.e(TAG, "Error parsing gpx track!");
         }
-
     }
 
+    //
+    // Return the Lattitude and Longitude of where a photo was taken,
+    // based on the time it was taken.
+    //
     private LatLng findPhotoOnTrack(LocalDateTime photodt) {
         Double previousLat = 0.0;
         Double previousLon = 0.0;
@@ -266,18 +279,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Double tagLon = 0.0;
 
         if (photodt.isBefore(startTrack) || photodt.isAfter(endTrack))
-            return null;
+            return null;  // Photo's date was before or after the start of the GPS track
 
         ArrayList<TrackPoint> points = tData.getTrackPoints();
         for (TrackPoint trackPoint : points) {
             pointdt = trackPoint.getTime();
-            if (!photodt.isBefore(pointdt) && !photodt.isEqual(pointdt)) {
-                Boolean test = photodt.isEqual(pointdt);
+            if (photodt.isAfter(pointdt)) {
+                // The photo was taken AFTER this point
                 previousLat = trackPoint.getLatitude();
                 previousLon = trackPoint.getLongitude();
                 previousTime = trackPoint.getTime();
             } else {
+                // The photo was taken before or at the same time as this point
                 try {
+                    // Convert date/times to Milliseconds
                     millisToPhoto = java.time.Duration.between(previousTime, photodt).toMillis();
                     millisToEndpoint = java.time.Duration.between(previousTime, pointdt).toMillis();
                 } catch (NullPointerException e) {
@@ -291,7 +306,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     tagLat = midPoint.latitude();
                     tagLon = midPoint.longitude();
                 } else {
-                    // Photo was taken at a track point locatrion
+                    // Photo was taken at a track point location
                     tagLat = trackPoint.getLatitude();
                     tagLon = trackPoint.getLongitude();
 
@@ -303,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     /*
-     * Returns a photo's creation dare from it's EXIF data
+     * Returns a photo's creation date from it's EXIF data
      */
     private LocalDateTime getPhotoDate(Uri pUri) {
         InputStream mfile;
@@ -316,6 +331,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 ExifInterface exif = new ExifInterface(inputStream);
                 dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
                 if (dtStr != null) {
+                    // Convert string date into LocalDateTime, then adjust for timezone offset
+                    // Timezone offset is the difference, in hours, between the timezone that the tracking
+                    //     data was taken in and the timezone that the camera is set to.
                     ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(cameraOffset * -1);
                     //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
                     //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
@@ -330,37 +348,43 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
-
+    //
+    // Get the file name associated with a URI.
+    //
     public String getFileName(Uri uri) {
         String result = null;
+        int cut;
 
         String scheme = uri.getScheme();
         if (scheme != null && scheme.equals("content")) {
+            //
+            // query the URI provider for the file name
+            //
             try (Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                 }
             }
         }
-        if (result == null) {
-            result = uri.getPath();
-            int cut;
-            try {
-                cut = result.lastIndexOf('/');
-            } catch (NullPointerException e) {
-                cut = -1;
-            }
-            if (cut != -1) {
-                result = result.substring(cut + 1);
-            }
+        if (result != null)
+            return result;
+
+        result = uri.getPath();
+        try {
+            assert result != null;
+            cut = result.lastIndexOf('/');
+        } catch (NullPointerException e) {
+            cut = -1;
         }
+        if (cut != -1)
+            result = result.substring(cut + 1);
+
         return result;
     }
 
-    private int calcOffset(int val) {
-        return 12 + val;
-    }
-
+    //
+    // Callback for when a Spinner value has been selected
+    //
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
         if (parent.getId() == cameraOffsetSpinner.getId())
@@ -371,7 +395,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
-        // Required by the Spinnerd
+        // Required by the Spinners
     }
 }
 
