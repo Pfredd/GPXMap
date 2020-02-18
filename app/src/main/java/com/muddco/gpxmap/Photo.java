@@ -10,7 +10,7 @@ public class Photo {
     private String fileName = null;
     private Uri uri;
     private LocalDateTime date = null;
-    private LatLng positiuon;
+    private LatLng position;
 
     public Photo(String pfname) {
         fileName = pfname;
@@ -36,12 +36,12 @@ public class Photo {
         return date;
     }
 
-    public void setPosition(LatLng mposition) {
-        positiuon = mposition;
+    public LatLng getPosition() {
+        return position;
     }
 
-    public LatLng getPositiuon() {
-        return positiuon;
+    public void setPosition(LatLng mposition) {
+        position = mposition;
     }
 
 

@@ -139,7 +139,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         if (resultCode == Activity.RESULT_OK) {
             if (requestCode == RQS_OPEN_GPX) {
+                //
                 // Process GPX file
+                //
                 Uri gpxUri = data.getData();
                 if (gpxUri != null) {
                     try {
@@ -152,6 +154,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     Toast.makeText(this, "URI is null!", Toast.LENGTH_LONG).show();
 
             } else if (requestCode == RQS_OPEN_PHOTO_TREE) {
+                //
+                // Get and process photo files
+                //
                 // We actually do not use OPEN_TREE because it will not woirk with OneDrive
                 // Instead, we do an OPEN_DOCUMENT with a flag set that allows
                 // the user to select multiple files/

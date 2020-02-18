@@ -20,6 +20,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -38,20 +39,21 @@ public class MapFragment extends Fragment {
     }
 
     static void displayPhotos(ArrayList<Photo> photoList) {
+        MarkerData mData;
+        Gson gson = new Gson();
+        String jsonString;
 
-        if (pData != null)
-            pData.clear();
-        else
-            pData = new ArrayList<>();
-
-        int photoIndex = 0;
         for (Photo photo : photoList) {
+            mData = new MarkerData();
+            mData.setPhotoUri(photo.getUri());
+            mData.setPhotoLatLng(photo.getPosition());
+            jsonString = gson.toJson(mData);
+
             Marker marker = mMap.addMarker(new MarkerOptions()
-                    .position(photo.getPositiuon())
-                    .snippet(String.valueOf(photoIndex))
+                    .position(photo.getPosition())
                     .title(photo.getFname()));
-            marker.setTag(photoIndex++);
-            pData.add(photo);
+            marker.setTag(jsonString);
+
         }
     }
 
