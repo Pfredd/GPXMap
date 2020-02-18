@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">GPXMap</string>
     <string name="title_activity_maps">GPXMap</string>
+    <string name="time_offsets">Time Offsets</string>
+    <string name="camera_time_offset_from_gmt">Camera time offset from GMT:</string>
+    <string name="trackview_debug">{trackview.debug}</string>
+    <string name="local_time_offset_from_gmt">Local time offset from GMT:</string>
+    <string name="select_gpx_file">Select GPX File</string>
+    <string name="select_photos">Select Photos</string>
 </resources>

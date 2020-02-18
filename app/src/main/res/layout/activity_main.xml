@@ -1,37 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="horizontal"
+    tools:context=".MainActivity">
 
+    <!-- Left panel -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_width="517dp"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:orientation="vertical">
 
-        <Button
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:id="@+id/btn1"
+        <!-- Button container -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Select GPX File " />
+            android:orientation="horizontal">
 
-        <Button
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:id="@+id/btn2"
+            <Button
+                android:id="@+id/loadGpxButton"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/select_gpx_file" />
+
+            <Button
+                android:id="@+id/loadPhotosButton"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/select_photos" />
+        </LinearLayout>
+
+        <!-- Time offset containers -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Select Photos" />
+            android:background="@drawable/rounded_corners"
+            android:orientation="vertical">
+
+            <!-- Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:text="@string/time_offsets"
+                android:textAlignment="center"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <!-- CameraTime offset container -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="4"
+                    android:text="@string/camera_time_offset_from_gmt"
+                    android:textSize="18sp" />
+
+                <Spinner
+                    android:id="@+id/camera_offset_spinner"
+                    style="@style/Widget.AppCompat.Spinner"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:background="@drawable/spinner"
+                    android:popupElevation="16dp" />
+
+            </LinearLayout>
+            <!-- Local time offset container -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="4"
+                    android:text="@string/local_time_offset_from_gmt"
+                    android:textSize="18sp" />
+
+                <Spinner
+                    android:id="@+id/local_offset_spinner"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/trackStartTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{trackinfo.getStartTime()}"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/trackEndTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{trackinfo.getEndTime()}"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/trackNumPoints"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{trackinfo.getNumPoints()}"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/numPhotos"
+            android:layout_width="match_parent"
+            android:layout_height="600dp"
+            android:text="@string/trackview_debug"
+            android:textSize="24sp" />
     </LinearLayout>
-
+    <!-- Right Panel - Container for map -->
     <LinearLayout
+        android:id="@+id/container_frame_back"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/container_frame_back"
         android:layout_marginTop="5dp"
-        android:orientation="horizontal">
-
-
-    </LinearLayout>
-
+        android:orientation="horizontal" />
 </LinearLayout>

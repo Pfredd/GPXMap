@@ -7,28 +7,28 @@ import com.google.android.gms.maps.model.LatLng;
 import java.time.LocalDateTime;
 
 public class Photo {
-    private String fileName = null;
+    private String fileName;
     private Uri uri;
     private LocalDateTime date = null;
-    private LatLng positiuon;
+    private LatLng position;
 
-    public Photo(String pfname) {
+    Photo(String pfname) {
         fileName = pfname;
     }
 
-    public void setUri(Uri mUri) {
-        uri = mUri;
-    }
-
-    public Uri getUri() {
+    Uri getUri() {
         return uri;
     }
 
-    public String getFname() {
+    void setUri(Uri mUri) {
+        uri = mUri;
+    }
+
+    String getFname() {
         return fileName;
     }
 
-    public void setDate(LocalDateTime mdate) {
+    void setDate(LocalDateTime mdate) {
         date = mdate;
     }
 
@@ -36,12 +36,12 @@ public class Photo {
         return date;
     }
 
-    public void setPosition(LatLng mposition) {
-        positiuon = mposition;
+    LatLng getPosition() {
+        return position;
     }
 
-    public LatLng getPositiuon() {
-        return positiuon;
+    void setPosition(LatLng mposition) {
+        position = mposition;
     }
 
 

@@ -2,6 +2,7 @@ package com.muddco.gpxmap;
 
 import android.app.Activity;
 import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -9,7 +10,9 @@ import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,6 +22,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.muddco.gpxmap.databinding.ActivityMainBinding;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -38,174 +42,84 @@ import io.ticofab.androidgpxparser.parser.domain.TrackPoint;
 import io.ticofab.androidgpxparser.parser.domain.TrackSegment;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
-    static final String TAG = "TEST123"; // GPXParserSampleActivity.class.getSimpleName();
+    static final String TAG = "TEST123";
     private static final int RQS_OPEN_GPX = 1;
     private static final int RQS_OPEN_PHOTO_TREE = 2;
     GPXParser mParser = new GPXParser();
     TrackData tData = new TrackData();
     LocalDateTime startTrack, endTrack;
-    ArrayList<Photo> pData = new ArrayList<Photo>();
-    long tzOffset = 5;
-    private Button btn1, btn2;
+    static public Context appContext;
+    ArrayList<Photo> pData = new ArrayList<>();
+    private ActivityMainBinding binding;
+    private int cameraOffset = -5;
+    private int localOffset = -8;
+    private Spinner cameraOffsetSpinner;
+    private Spinner localOffsetSpinner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ArrayAdapter<CharSequence> tzOffsetAdapter;
+
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        btn1 = findViewById(R.id.btn1);
-        btn2 = findViewById(R.id.btn2);
+        // Bind the view
+        // Uses the new "View Binding" feature introduced in Android Studio 3.6
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
-        btn1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Prompt user to select gpx file
+        appContext = getApplicationContext();
 
-                Intent intent = new Intent();
-                intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("*/*");
+        //Set button click handlers
+        binding.loadGpxButton.setOnClickListener(v -> loadGpxClicked());
+        binding.loadPhotosButton.setOnClickListener(v -> loadPhotosClicked());
 
-                startActivityForResult(Intent.createChooser(intent, "Select a GPX file"), RQS_OPEN_GPX);
-            }
-        });
+        // Set up spinners
+        cameraOffsetSpinner = binding.cameraOffsetSpinner;
+        localOffsetSpinner = binding.localOffsetSpinner;
+        tzOffsetAdapter = ArrayAdapter.createFromResource(this, R.array.timezone_offsets, android.R.layout.simple_spinner_item);
+        tzOffsetAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        cameraOffsetSpinner.setAdapter(tzOffsetAdapter);
+        localOffsetSpinner.setAdapter(tzOffsetAdapter);
+        cameraOffsetSpinner.setOnItemSelectedListener(this);
+        localOffsetSpinner.setOnItemSelectedListener(this);
 
-        btn2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                /*
-                 * Get the photo files.
-                 *
-                 * Normallky we would use the ACTION_OPEN_DOCUMENT_TREE intent.
-                 * However, that does not allow us to accedd OneDrive and other providers.
-                 * Insteade, we use ACTION_OPEN_DOCUMENT with a flag to indicate that the
-                 * user can select multiple files.
-                 */
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("image/jpeg");
-                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        // Set initial values for Spinners
+        cameraOffsetSpinner.setSelection(12 + cameraOffset);
+        localOffsetSpinner.setSelection(12 + localOffset);
 
-                startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
-            }
-        });
-
-        // Load the map
+        // Load Map
         addFragment(new MapFragment(), false, "one");
     }
 
-    public void loadGPXFile(InputStream in) {
-        Gpx parsedGpx = null;
+    private void loadGpxClicked() {
+        // Prompt user to select gpx file
 
-        try {
-            parsedGpx = mParser.parse(in);
-            in.close();
-        } catch (IOException | XmlPullParserException e) {
-            e.printStackTrace();
-            Log.e(TAG, "GPX file not found: " + e.getLocalizedMessage());
-            int qq = 3;
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
 
-        }
-        if (parsedGpx != null) {
-            List<Track> tracks = parsedGpx.getTracks();
-            for (int i = 0; i < tracks.size(); i++) {
-                Track track = tracks.get(i);
-                List<TrackSegment> segments = track.getTrackSegments();
-                for (int j = 0; j < segments.size(); j++) {
-                    TrackSegment segment = segments.get(j);
-                    boolean firstPoint = true;
-                    for (TrackPoint trackPoint : segment.getTrackPoints()) {
-                        if (firstPoint) {
-                            startTrack = trackPoint.getTime();
-                            firstPoint = false;
-                        } else
-                            endTrack = trackPoint.getTime();
-                        tData.addTrackPoint(trackPoint);
-                    }
-                }
-            }
-            // Display the track on the map
-            MapFragment.displayTrack(tData);
-
-        } else {
-            Toast.makeText(this, "GPX parse failed", Toast.LENGTH_LONG).show();
-            Log.e(TAG, "Error parsing gpx track!");
-        }
-
+        startActivityForResult(Intent.createChooser(intent, "Select a GPX file"), RQS_OPEN_GPX);
     }
 
-    private LatLng findPhotoOnTrack(LocalDateTime photodt) {
-        Double previousLat = 0.0;
-        Double previousLon = 0.0;
-        LocalDateTime previousTime = null;
-        LocalDateTime pointdt;
-        long millisToPhoto = 0;
-        long millisToEndpoint = 0;
-        Double tagLat = 0.0;
-        Double tagLon = 0.0;
+    private void loadPhotosClicked() {
+        /*
+         * Get the photo files.
+         *
+         * Normallky we would use the ACTION_OPEN_DOCUMENT_TREE intent.
+         * However, that does not allow us to accedd OneDrive and other providers.
+         * Insteade, we use ACTION_OPEN_DOCUMENT with a flag to indicate that the
+         * user can select multiple files.
+         */
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/jpeg");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
-        if (photodt.isBefore(startTrack) || photodt.isAfter(endTrack))
-            return null;
-
-        ArrayList<TrackPoint> points = tData.getTrackPoints();
-        for (TrackPoint trackPoint : points) {
-            pointdt = trackPoint.getTime();
-            if (!photodt.isBefore(pointdt) && !photodt.isEqual(pointdt)) {
-                Boolean test = photodt.isEqual(pointdt);
-                previousLat = trackPoint.getLatitude();
-                previousLon = trackPoint.getLongitude();
-                previousTime = trackPoint.getTime();
-            } else {
-                try {
-                    millisToPhoto = java.time.Duration.between(previousTime, photodt).toMillis();
-                    millisToEndpoint = java.time.Duration.between(previousTime, pointdt).toMillis();
-                } catch (NullPointerException e) {
-                    e.printStackTrace();
-                    System.exit(1);
-                }
-                if (millisToEndpoint != millisToPhoto) {
-                    // Photo was taken between track data points. So we have to extrapolate the position
-                    float pct = (float) millisToPhoto / (float) millisToEndpoint;
-                    extrapolatePoint midPoint = new extrapolatePoint(previousLat, previousLon, trackPoint.getLatitude(), trackPoint.getLongitude(), pct);
-                    tagLat = midPoint.latitude();
-                    tagLon = midPoint.longitude();
-                } else {
-                    // Photo was taken at a track point locatrion
-                    tagLat = trackPoint.getLatitude();
-                    tagLon = trackPoint.getLongitude();
-
-                }
-                break;
-            }
-        }
-        return (new LatLng(tagLat, tagLon));
-    }
-
-    /*
-     * Returns a photo's creation dare from it's EXIF data
-     */
-    private LocalDateTime getPhotoDate(Uri pUri) {
-        InputStream mfile;
-        LocalDateTime ret = null;
-        String dtStr;
-
-        try {
-            InputStream inputStream = getBaseContext().getContentResolver().openInputStream(pUri);
-            ExifInterface exif = new ExifInterface(inputStream);
-            dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
-            if (dtStr != null)
-                ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(tzOffset);
-            //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
-            //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
-            inputStream.close();
-        } catch (IOException e) {
-            Log.e(TAG, "Photo file not found: " + e.getLocalizedMessage());
-        }
-
-        return (ret);
-
+        startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
     }
 
     public void addFragment(Fragment fragment, boolean addToBackStack, String tag) {
@@ -225,16 +139,24 @@ public class MainActivity extends AppCompatActivity {
 
         if (resultCode == Activity.RESULT_OK) {
             if (requestCode == RQS_OPEN_GPX) {
+                //
                 // Process GPX file
+                //
                 Uri gpxUri = data.getData();
-                try {
-                    InputStream inputStream = getBaseContext().getContentResolver().openInputStream(gpxUri);
-                    loadGPXFile(inputStream);
-                } catch (FileNotFoundException e) {
-                    Toast.makeText(this, "File not found: " + gpxUri.toString(), Toast.LENGTH_SHORT).show();
-                }
+                if (gpxUri != null) {
+                    try {
+                        InputStream inputStream = getBaseContext().getContentResolver().openInputStream(gpxUri);
+                        loadGPXFile(inputStream);
+                    } catch (FileNotFoundException e) {
+                        Toast.makeText(this, "File not found: " + gpxUri.toString(), Toast.LENGTH_SHORT).show();
+                    }
+                } else
+                    Toast.makeText(this, "URI is null!", Toast.LENGTH_LONG).show();
 
             } else if (requestCode == RQS_OPEN_PHOTO_TREE) {
+                //
+                // Get and process photo files
+                //
                 // We actually do not use OPEN_TREE because it will not woirk with OneDrive
                 // Instead, we do an OPEN_DOCUMENT with a flag set that allows
                 // the user to select multiple files/
@@ -263,6 +185,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "No jpeg files found", Toast.LENGTH_LONG).show();
                 else {
                     Photo photo;
+                    int pCount = 0;
                     Iterator itr = pData.iterator();
                     while (itr.hasNext()) {
                         photo = (Photo) itr.next();
@@ -274,6 +197,8 @@ public class MainActivity extends AppCompatActivity {
                             if (pPos == null)
                                 itr.remove();
                             else {
+                                pCount++;
+                                binding.numPhotos.setText(String.valueOf(pCount));
                                 photo.setDate(pDate);
                                 photo.setPosition(pPos);
                             }
@@ -284,30 +209,201 @@ public class MainActivity extends AppCompatActivity {
                         MapFragment.displayPhotos(pData);
                 }
             }
+            int qqww = 345;
         }
     }
 
+    public void loadGPXFile(InputStream in) {
+        Gpx parsedGpx = null;
+
+        try {
+            parsedGpx = mParser.parse(in);
+            in.close();
+        } catch (IOException | XmlPullParserException e) {
+            e.printStackTrace();
+            Log.e(TAG, "GPX file not found: " + e.getLocalizedMessage());
+            int qq = 3;
+
+        }
+        int numPoints = 0;
+
+        if (parsedGpx != null) {
+            List<Track> tracks = parsedGpx.getTracks();
+            for (int i = 0; i < tracks.size(); i++) {
+                Track track = tracks.get(i);
+                List<TrackSegment> segments = track.getTrackSegments();
+                for (int j = 0; j < segments.size(); j++) {
+                    TrackSegment segment = segments.get(j);
+                    boolean firstPoint = true;
+                    for (TrackPoint trackPoint : segment.getTrackPoints()) {
+                        if (firstPoint) {
+                            startTrack = trackPoint.getTime();
+                            firstPoint = false;
+                        } else
+                            endTrack = trackPoint.getTime();
+                        tData.addTrackPoint(trackPoint);
+                        numPoints++;
+                    }
+                }
+            }
+            // Display the track on the map
+            MapFragment.displayTrack(tData);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM dd yyyy hh:mm a");
+
+            String sString = "invalid";
+            String eString = "invalid";
+            try {
+                sString = startTrack.plusHours(localOffset).format(formatter);
+                eString = endTrack.plusHours(localOffset).format(formatter);
+            } catch (NumberFormatException nfe) {
+                System.out.println("Could not parse " + nfe);
+            }
+
+            binding.trackStartTime.setText(sString);
+            binding.trackEndTime.setText(eString);
+            binding.trackNumPoints.setText(String.valueOf(numPoints));
+
+        } else {
+            Toast.makeText(this, "GPX parse failed", Toast.LENGTH_LONG).show();
+            Log.e(TAG, "Error parsing gpx track!");
+        }
+    }
+
+    //
+    // Return the Lattitude and Longitude of where a photo was taken,
+    // based on the time it was taken.
+    //
+    private LatLng findPhotoOnTrack(LocalDateTime photodt) {
+        Double previousLat = 0.0;
+        Double previousLon = 0.0;
+        LocalDateTime previousTime = null;
+        LocalDateTime pointdt;
+        long millisToPhoto = 0;
+        long millisToEndpoint = 0;
+        Double tagLat = 0.0;
+        Double tagLon = 0.0;
+
+        if (photodt.isBefore(startTrack) || photodt.isAfter(endTrack))
+            return null;  // Photo's date was before or after the start of the GPS track
+
+        ArrayList<TrackPoint> points = tData.getTrackPoints();
+        for (TrackPoint trackPoint : points) {
+            pointdt = trackPoint.getTime();
+            if (photodt.isAfter(pointdt)) {
+                // The photo was taken AFTER this point
+                previousLat = trackPoint.getLatitude();
+                previousLon = trackPoint.getLongitude();
+                previousTime = trackPoint.getTime();
+            } else {
+                // The photo was taken before or at the same time as this point
+                try {
+                    // Convert date/times to Milliseconds
+                    millisToPhoto = java.time.Duration.between(previousTime, photodt).toMillis();
+                    millisToEndpoint = java.time.Duration.between(previousTime, pointdt).toMillis();
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+                if (millisToEndpoint != millisToPhoto) {
+                    // Photo was taken between track data points. So we have to extrapolate the position
+                    float pct = (float) millisToPhoto / (float) millisToEndpoint;
+                    extrapolatePoint midPoint = new extrapolatePoint(previousLat, previousLon, trackPoint.getLatitude(), trackPoint.getLongitude(), pct);
+                    tagLat = midPoint.latitude();
+                    tagLon = midPoint.longitude();
+                } else {
+                    // Photo was taken at a track point location
+                    tagLat = trackPoint.getLatitude();
+                    tagLon = trackPoint.getLongitude();
+
+                }
+                break;
+            }
+        }
+        return (new LatLng(tagLat, tagLon));
+    }
+
+    /*
+     * Returns a photo's creation date from it's EXIF data
+     */
+    private LocalDateTime getPhotoDate(Uri pUri) {
+        InputStream mfile;
+        LocalDateTime ret = null;
+        String dtStr;
+
+        try {
+            InputStream inputStream = getBaseContext().getContentResolver().openInputStream(pUri);
+            if (inputStream != null) {
+                ExifInterface exif = new ExifInterface(inputStream);
+                dtStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL);
+                if (dtStr != null) {
+                    // Convert string date into LocalDateTime, then adjust for timezone offset
+                    // Timezone offset is the difference, in hours, between the timezone that the tracking
+                    //     data was taken in and the timezone that the camera is set to.
+                    ret = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")).plusHours(cameraOffset * -1);
+                    //String lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
+                    //String lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+                }
+                inputStream.close();
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Photo file not found: " + e.getLocalizedMessage());
+        }
+
+        return (ret);
+
+    }
+
+    //
+    // Get the file name associated with a URI.
+    //
     public String getFileName(Uri uri) {
         String result = null;
-        if (uri.getScheme().equals("content")) {
-            Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
-            try {
+        int cut;
+
+        String scheme = uri.getScheme();
+        if (scheme != null && scheme.equals("content")) {
+            //
+            // query the URI provider for the file name
+            //
+            try (Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                 }
-            } finally {
-                cursor.close();
             }
         }
-        if (result == null) {
-            result = uri.getPath();
-            int cut = result.lastIndexOf('/');
-            if (cut != -1) {
-                result = result.substring(cut + 1);
-            }
+        if (result != null)
+            return result;
+
+        result = uri.getPath();
+        try {
+            assert result != null;
+            cut = result.lastIndexOf('/');
+        } catch (NullPointerException e) {
+            cut = -1;
         }
+        if (cut != -1)
+            result = result.substring(cut + 1);
+
         return result;
     }
+
+    //
+    // Callback for when a Spinner value has been selected
+    //
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+        if (parent.getId() == cameraOffsetSpinner.getId())
+            cameraOffset = (int) id - 12;
+        else if (parent.getId() == localOffsetSpinner.getId())
+            localOffset = (int) id - 12;
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Required by the Spinners
+    }
 }
+
+
 
 
