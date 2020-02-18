@@ -1,25 +1,65 @@
 package com.muddco.gpxmap;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Marker;
 import com.google.gson.Gson;
 
+import java.util.ArrayList;
+import java.util.Objects;
+
 public class MapInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
-    private Context context;
+    private static ArrayList<MapInfoData> infodata = new ArrayList<>();
+    private static Context context;
+    private static int infoCount = 0;
 
     MapInfoWindowAdapter(Context context) {
-        this.context = context.getApplicationContext();
+        MapInfoWindowAdapter.context = context.getApplicationContext();
+    }
+
+    static int AddMapInfoData(Uri uri) {
+        MapInfoData idata = new MapInfoData();
+        RequestBuilder<Bitmap> bmap = null;
+
+        idata.setCount(infoCount);
+        idata.setUri(uri);
+
+        Glide.with(context)
+                .asBitmap()
+                .load(uri)
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        idata.setBitmap(resource);
+                        infodata.add(idata);
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
+                    }
+                });
+
+        return infoCount++;
     }
 
     @Override
     public View getInfoWindow(Marker arg0) {
+
         return null;
     }
 
@@ -36,34 +76,24 @@ public class MapInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
             e.printStackTrace();
         }
 
-        MarkerData markerData = gson.fromJson((String) marker.getTag(), MarkerData.class);
-        ImageView imageView = v.findViewById(R.id.image);
-        Glide.with(context)
-                .load(markerData.getPhotoUri())
-                .fitCenter()
-                .into(imageView);
+        int count = (int) marker.getTag();
+        MapInfoData idata = infodata.stream()
+                .filter(data -> count == data.getCount())
+                .findAny()
+                .orElse(null);
 
-        TextView title = v.findViewById(R.id.name);
-        title.setText(marker.getTitle());
+        ImageView imageView = null;
+        if (v != null) {
+            imageView = v.findViewById(R.id.image);
+            imageView.setImageBitmap(Objects.requireNonNull(idata).getBitmap());
 
-        TextView desc = v.findViewById(R.id.desc);
-        desc.setText((markerData.getPhotoiLatlng().toString()));
-//        InputStream inputStream = null;
-//        try {
-//            inputStream = context.getContentResolver().openInputStream(uri);
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        Bitmap myBitmap = BitmapFactory.decodeStream(inputStream);
-//        imageView.setImageBitmap(myBitmap);
-//        String path = uri.getPath();
-//        File file = new File(path);
-//
-//            LatLng latLng = arg0.getPosition();
-//            TextView tvLat = (TextView) v.findViewById(R.id.tv_lat);
-//            TextView tvLng = (TextView) v.findViewById(R.id.tv_lng);
-//            tvLat.setText("Latitude:" + latLng.latitude);
-//            tvLng.setText("Longitude:"+ latLng.longitude);
+            TextView title = v.findViewById(R.id.name);
+            title.setText(marker.getTitle());
+
+            TextView desc = v.findViewById(R.id.desc);
+            desc.setText(marker.getSnippet());
+        }
+
         return v;
     }
 }
