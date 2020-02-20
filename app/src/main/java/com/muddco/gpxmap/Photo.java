@@ -1,5 +1,6 @@
 package com.muddco.gpxmap;
 
+import android.graphics.Bitmap;
 import android.net.Uri;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -11,6 +12,9 @@ public class Photo {
     private Uri uri;
     private LocalDateTime date = null;
     private LatLng position;
+    private Bitmap bitmap;
+    private int count;
+
 
     Photo(String pfname) {
         fileName = pfname;
@@ -43,6 +47,23 @@ public class Photo {
     void setPosition(LatLng mposition) {
         position = mposition;
     }
+
+    Bitmap getBitmap() {
+        return bitmap;
+    }
+
+    void setBitmap(Bitmap bitmap) {
+        this.bitmap = bitmap;
+    }
+
+    int getCount() {
+        return count;
+    }
+
+    void setCount(int count) {
+        this.count = count;
+    }
+
 
 
     /*public int compareTo(Photo p) {
