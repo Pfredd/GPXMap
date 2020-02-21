@@ -93,34 +93,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         return inSampleSize;
     }
 
-    private void loadGpxClicked() {
-        // Prompt user to select gpx file
-
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-
-        startActivityForResult(Intent.createChooser(intent, "Select a GPX file"), RQS_OPEN_GPX);
-    }
-
-    private void loadPhotosClicked() {
-        /*
-         * Get the photo files.
-         *
-         * Normallky we would use the ACTION_OPEN_DOCUMENT_TREE intent.
-         * However, that does not allow us to accedd OneDrive and other providers.
-         * Insteade, we use ACTION_OPEN_DOCUMENT with a flag to indicate that the
-         * user can select multiple files.
-         */
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("image/jpeg");
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-
-        startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         ArrayAdapter<CharSequence> tzOffsetAdapter;
@@ -159,6 +131,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
+
+    }
+
+    private void loadGpxClicked() {
+        // Prompt user to select gpx file
+
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+
+        startActivityForResult(Intent.createChooser(intent, "Select a GPX file"), RQS_OPEN_GPX);
     }
 
     @Override
@@ -439,35 +423,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    @Override
-    public void onMapReady(GoogleMap map) {
-        mMap = map;
+    private void loadPhotosClicked() {
+        /*
+         * Get the photo files.
+         *
+         * Normallky we would use the ACTION_OPEN_DOCUMENT_TREE intent.
+         * However, that does not allow us to accedd OneDrive and other providers.
+         * Insteade, we use ACTION_OPEN_DOCUMENT with a flag to indicate that the
+         * user can select multiple files.
+         */
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/jpeg");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
-
-        View mapView = findViewById(R.id.map);
-
-        //
-        // Set up mouse wheel up & down to zoom the map in &^ out
-        //
-        mapView.setOnGenericMotionListener((v, event) -> {
-            if (mMap != null && (0 != (event.getSource() & InputDevice.SOURCE_CLASS_POINTER))) {
-                if (event.getAction() == MotionEvent.ACTION_SCROLL) {
-                    if (event.getAxisValue(MotionEvent.AXIS_VSCROLL) < 0.0f)
-                        mMap.animateCamera(CameraUpdateFactory.zoomOut());
-                    else
-                        mMap.animateCamera(CameraUpdateFactory.zoomIn());
-                    return true;
-                }
-            }
-            return false;
-        });
-
-        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-        mMap.clear(); //clear old markers
-
-        MapInfoWindowAdapter mapInfoWindowAdapter = new MapInfoWindowAdapter(this);
-        mMap.setInfoWindowAdapter(mapInfoWindowAdapter);
+        startActivityForResult(Intent.createChooser(intent, "Choose Photos"), RQS_OPEN_PHOTO_TREE);
     }
 
     void displayTrack(TrackData tData) {
@@ -514,6 +484,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // Decode bitmap with inSampleSize set
         options.inJustDecodeBounds = false;
         // "rewind" InputStream
+        assert inputStream != null;
         inputStream.close();
         inputStream = getBaseContext().getContentResolver().openInputStream(uri);
 
@@ -521,6 +492,46 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         assert inputStream != null;
         inputStream.close();
         return bm;
+    }
+
+    @Override
+    public void onMapReady(GoogleMap map) {
+        mMap = map;
+
+        View mapView = findViewById(R.id.map);
+
+        //
+        // Set up mouse wheel up & down to zoom the map in &^ out
+        //
+        mapView.setOnGenericMotionListener((v, event) -> {
+            if (mMap != null && (0 != (event.getSource() & InputDevice.SOURCE_CLASS_POINTER))) {
+                if (event.getAction() == MotionEvent.ACTION_SCROLL) {
+                    if (event.getAxisValue(MotionEvent.AXIS_VSCROLL) < 0.0f)
+                        mMap.animateCamera(CameraUpdateFactory.zoomOut());
+                    else
+                        mMap.animateCamera(CameraUpdateFactory.zoomIn());
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        mMap.clear(); //clear old markers
+
+        MapInfoWindowAdapter mapInfoWindowAdapter = new MapInfoWindowAdapter(this);
+        mMap.setInfoWindowAdapter(mapInfoWindowAdapter);
+
+        // Set up Marker Click handler
+        Context cc = this;
+        mMap.setOnInfoWindowClickListener(marker -> {
+
+            String uriString = (String) marker.getTag();
+
+            Intent i = new Intent(cc, PhotoDisplay.class);
+            i.putExtra("uri", uriString);
+            startActivity(i);
+        });
     }
 
 }
